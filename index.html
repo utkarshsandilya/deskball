@@ -13,7 +13,6 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png" sizes="192x192">
 <style>html,body{margin:0;padding:0}img{max-width:100%}</style>
-<!-- Supabase client. Remove this line if you are staying offline-only. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <title>Deskball Federation</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
@@ -455,13 +454,13 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       <div id="demoBanner" hidden style="margin-top:15px"></div>
       <div style="margin-top:16px" id="homeHero"></div>
 
-      <div class="sh"><h2>Latest result</h2><button class="lk" data-go="record">Record one</button></div>
+      <div class="sh" id="shLatest"><h2>Latest result</h2><button class="lk" data-go="record">Record one</button></div>
       <div id="homeMatch"></div>
 
-      <div class="sh"><h2>Top of the ladder</h2><button class="lk" data-go="ladder">See all</button></div>
+      <div class="sh" id="shLadder"><h2>Top of the ladder</h2><button class="lk" data-go="ladder">See all</button></div>
       <div class="rows" id="homeLadder"></div>
 
-      <div class="sh"><h2>Biggest movers</h2><span class="note">last match played</span></div>
+      <div class="sh" id="shMovers"><h2>Biggest movers</h2><span class="note">last match played</span></div>
       <div class="rows" id="homeMovers"></div>
 
       <div class="foot">Ratings recomputed from the full match log &middot; saved on this device</div>
@@ -911,7 +910,7 @@ let meet=null, cup=null;
 
 function blank(){
   const sid=uid();
-  return {v:1, demo:false, settings:{...DEFAULTS},
+  return {v:1, settings:{...DEFAULTS},
     seasons:[{id:sid,name:'Season 1',started:Date.now()}], season:sid,
     players:[], matches:[], ratings:[], accounts:[], requests:[]};
 }
@@ -935,7 +934,7 @@ function load(){
       }
     }
   }catch(e){}
-  return demoLeague();
+  return blank();
 }
 function save(){
   if(cloudOn()){cloudPush();return;}
@@ -944,52 +943,8 @@ function save(){
 }
 
 /* ------------------------------------------------------- sample league */
-function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
-  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function demoLeague(){
-  const d=blank(); d.demo=true;
-  const roster=[['Ravi Anand',1180],['Mei Okonkwo',1145],['Tomás Ferreira',1095],['Aisha Rahman',1090],
-    ['Jonas Weber',1030],['Priya Nair',1015],['Nkechi Obi',965],['Sam Lindqvist',920]];
-  const skill={};
-  roster.forEach(([n,s])=>{const p={id:uid(),name:n,active:true,joined:Date.now()};d.players.push(p);skill[p.id]=s;});
-  const rnd=mulberry(20260907);
-  const ids=d.players.map(p=>p.id);
-  const day=86400000; let t=Date.now()-day*38;
-  for(let m=0;m<38;m++){
-    if(m%3===0)t+=day*(1+Math.floor(rnd()*3));
-    const pool=ids.slice();
-    for(let i=pool.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
-    const a=[pool[0],pool[1]], b=[pool[2],pool[3]];
-    const sa=(skill[a[0]]+skill[a[1]])/2, sb=(skill[b[0]]+skill[b[1]])/2;
-    const aWins=rnd()<1/(1+Math.pow(10,(sb-sa)/260));
-    const gap=Math.abs(sa-sb);
-    const to=rnd()<0.25?7:11;                       // some meets run short games
-    const spread=clamp(Math.round(1+gap/45+rnd()*(to*0.55)),1,to);
-    d.matches.push({id:uid(),ts:t+Math.floor(rnd()*day*0.4),season:d.season,tag:'meet',
-      slot:SLOTS[Math.floor(rnd()*SLOTS.length)][0], rated:true,
-      a,b,sa:aWins?to:to-spread,sb:aWins?to-spread:to});
-  }
-  d.matches.sort((x,y)=>x.ts-y.ts);
-  // two rounds of admin cards per player, so a trend exists
-  const MX=d.settings.skillMax;
-  d.players.forEach(p=>{
-    const base=4+(skill[p.id]-920)/260*(MX-4.5);
-    const tilt={};SKILLS.forEach(s=>tilt[s.k]=(rnd()*4-2));
-    [[-0.5,26],[0,4]].forEach(([bias,daysAgo])=>{
-      const card={id:uid(),player:p.id,rater:'Club admin',ts:Date.now()-86400000*daysAgo,note:''};
-      SKILLS.forEach(s=>card[s.k]=clamp(Math.round(base+tilt[s.k]+bias+(rnd()-0.5)*1.4),1,MX));
-      d.ratings.push(card);
-    });
-  });
-  // one of each kind of thing waiting for the admin, so the screen isn't blank
-  const nk=d.players[6];
-  d.accounts.push({id:uid(),name:nk.name,playerId:nk.id,pinHash:hashPin('1234'),status:'active',created:Date.now()-day*20});
-  d.accounts.push({id:uid(),name:'Yusuf Karim',playerId:null,pinHash:hashPin('4321'),status:'pending',created:Date.now()-day*1});
-  d.requests.push({id:uid(),type:'skill',accountId:d.accounts[0].id,playerId:nk.id,name:nk.name,
-    values:Object.fromEntries(SKILLS.map(s=>[s.k,clamp(Math.round(4+(skill[nk.id]-920)/260*(MX-4.5))+1,1,MX)])),
-    note:'my serve has come on a lot this term',ts:Date.now()-day*0.5,status:'pending'});
-  return d;
-}
+
+
 
 /* ======================================================= cloud (Supabase)
    Fill these two in and the app switches from "this browser only" to one
@@ -1872,7 +1827,7 @@ function lockRound(ri){
       slot:meet.slot, rated:meet.rated!==false, ref:meet.ref||null,
       a:g.a.slice(),b:g.b.slice(),sa:+g.sa,sb:+g.sb});
   });
-  r.done=true; S.demo=false; save(); refreshStats();
+  r.done=true; save(); refreshStats();
   if(ri===meet.rounds.length-1){
     if(meet.fmt==='mexicano')mexNext();
     if(meet.fmt==='kings')kingsNext();
@@ -1969,7 +1924,7 @@ function commitCup(){
   if(!ties.length){toast('No completed ties to add yet.');return;}
   if(cup.committed){toast('These ties are already in the log — delete them there first.');return;}
   ties.forEach(t=>S.matches.push({id:uid(),ts:Date.now(),season:S.season,tag:'cup',a:t.a.slice(),b:t.b.slice(),sa:t.sa,sb:t.sb}));
-  cup.committed=true; S.demo=false; save(); renderAll();
+  cup.committed=true; save(); renderAll();
   toast(`${ties.length} cup tie${ties.length>1?'s':''} added to the ladder.`);
 }
 
@@ -2044,6 +1999,31 @@ function renderHome(){
   const sn=S.seasons.find(s=>s.id===S.season);
   const n=S.matches.filter(m=>m.season===S.season).length;
   const played=Object.values(STATS).filter(s=>s.games>0);
+  const empty=!S.players.length;
+  ['shLatest','shLadder','shMovers'].forEach(id=>{const el=$('#'+id);if(el)el.hidden=empty;});
+  ['homeMatch','homeLadder','homeMovers'].forEach(id=>{const el=$('#'+id);if(el)el.hidden=empty;});
+  if(empty){
+    $('#homeHero').innerHTML=`
+      <div class="hero"><div class="in">
+        <div class="eyebrow">${esc(sn?sn.name:'Season 1')}</div>
+        <h3>Nobody on the roster yet</h3>
+        <div class="sub">Add your players and rate them, and the ladder builds itself from there.</div>
+        <button class="btnw" data-go="setup">Add the first player</button>
+      </div></div>
+      <div class="sh"><h2>Getting started</h2></div>
+      <div class="rows">
+        <button class="r" data-go="setup"><span class="av">1</span>
+          <span class="rm"><span class="rn">Add everyone who plays</span>
+            <span class="rs">Setup &rarr; Roster. Names only; the rest follows.</span></span></button>
+        <button class="r" data-go="skills"><span class="av">2</span>
+          <span class="rm"><span class="rn">Rate them out of ten</span>
+            <span class="rs">Five skills each. This sets everyone's opening DBR.</span></span></button>
+        <button class="r" data-go="meet"><span class="av">3</span>
+          <span class="rm"><span class="rn">Draw a meet, or record a match</span>
+            <span class="rs">Ratings start moving the moment results come in.</span></span></button>
+      </div>`;
+    return;
+  }
   $('#homeHero').innerHTML=`<div class="hero"><div class="in">
       <div class="eyebrow">${esc(sn?sn.name:'Season')}</div>
       <h3>${n?`${n} match${n===1?'':'es'} played`:'No matches yet'}</h3>
@@ -2707,15 +2687,7 @@ function animateDonuts(){
     });
   });
 }
-function renderChrome(){
-  const b=$('#demoBanner');
-  if(S.demo){
-    b.hidden=false;
-    b.innerHTML=`<div class="banner"><div><b>Sample league</b>
-      Eight made-up players so you can see how it all works. Clear it before you enter your own.</div>
-      <button class="btn xs sec" id="clearDemo" style="flex:0 0 auto">Clear</button></div>`;
-  }else b.hidden=true;
-}
+function renderChrome(){ $('#demoBanner').hidden=true; }
 function renderAll(){
   renderChrome();
   if(activeTab==='home')renderHome();
@@ -3068,11 +3040,6 @@ document.addEventListener('click',e=>{
   if(row&&!e.target.closest('button.btn,input,select')){drawerPlayer=row.dataset.player;go('player');return;}
   const rate=e.target.closest('[data-rate]');
   if(rate){drawerPlayer=rate.dataset.rate;go('skills');$('#rateWho').value=rate.dataset.rate;renderRatePreview();return;}
-  if(e.target.id==='clearDemo'){
-    if(confirm('Clear the sample league and start empty?')){
-      S=blank();meet=null;cup=null;$('#meetPicks')._sel=null;$('#cupPicks')._sel=null;
-      signOut();save();go('setup');toast('Sample cleared — add your players.');}
-  }
 });
 $('#playerRate').addEventListener('click',()=>{
   if(!drawerPlayer)return;
@@ -3115,7 +3082,7 @@ $('#saveMatch').addEventListener('click',()=>{
   S.matches.push({id:uid(),ts:dv?new Date(dv+'T12:00:00').getTime():Date.now(),season:S.season,tag:'match',
     slot:$('#matchSlot').value, rated:$('#matchRated').checked, ref:$('#matchRef').value||null,
     a:[v.a0,v.a1],b:[v.b0,v.b1],sa:+sa,sb:+sb});
-  S.demo=false;save();
+  save();
   $('#scoreA').value='';$('#scoreB').value='';
   refreshStats();renderAll();
   toast(`${+sa>+sb?pairName([v.a0,v.a1]):pairName([v.b0,v.b1])} win — ratings updated.`);
