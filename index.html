@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Deskball Federation — the club ladder, meets, cups and skill profiles.">
+<meta name="description" content="Deskball Federation - the club ladder, meets, cups and skill profiles.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#F8F7FD">
 <meta name="mobile-web-app-capable" content="yes">
@@ -378,6 +378,15 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 @media (prefers-reduced-motion:reduce){
   .view:not([hidden]),#introSlides *,.intro:not([hidden]){animation:none!important}
 }
+/* ---------- pull to refresh ---------- */
+.ptr{position:fixed;top:0;left:50%;z-index:120;width:38px;height:38px;border-radius:50%;
+  background:var(--card);border:1px solid var(--stroke2);box-shadow:0 6px 18px rgba(28,16,80,.14);
+  display:grid;place-items:center;pointer-events:none;opacity:0;
+  transform:translate(-50%,-52px)}
+.ptr svg{width:19px;height:19px;fill:none;stroke:var(--vio);stroke-width:2.4;stroke-linecap:round}
+.ptr.spin svg{animation:ptrSpin .7s linear infinite}
+@keyframes ptrSpin{to{transform:rotate(360deg)}}
+.ptr svg{transform-origin:50% 50%}
 .foot{text-align:center;font-size:11px;color:var(--dim2);padding:26px 18px 6px;font-weight:500}
 
 /* ---------- wider screens ---------- */
@@ -463,7 +472,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       <div class="sh" id="shMovers"><h2>Biggest movers</h2><span class="note">last match played</span></div>
       <div class="rows" id="homeMovers"></div>
 
-      <div class="foot">Ratings recomputed from the full match log &middot; saved on this device</div>
+      <div class="foot" id="homeFoot"></div>
     </div>
   </section>
 
@@ -619,7 +628,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       <div style="width:42px"></div>
     </div>
     <div class="pad">
-      <p class="lede" style="margin-top:0">DBR is earned &mdash; it moves only on results. A skill profile is the other half: what someone is actually good at. The club admin files the cards; everyone else can read every profile.</p>
+      <p class="lede" style="margin-top:0">DBR is earned &mdash; it moves only on results, and anyone can record one. A skill profile is the other half: what someone is actually good at. Only the club admin files these cards; everyone else reads them and can ask for a change.</p>
       <div class="sh"><h2>Category leaders</h2><span class="note" id="rateNote"></span></div>
       <div id="skillLeaders"></div>
 
@@ -792,7 +801,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
 
       <div id="setupData"><div class="sh"><h2>Data</h2></div>
       <div class="card">
-        <p class="note" style="margin-bottom:12px">Everything lives in this browser. Export a copy to move the league to another phone, or to hand it to whoever runs the club next.</p>
+        <p class="note" style="margin-bottom:12px" id="dataNote"></p>
         <div class="brow">
           <button class="btn sec sm" id="exportBtn">Export league</button>
           <button class="btn sec sm" id="importBtn">Import</button>
@@ -883,6 +892,10 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       </div>
     </div>
   </div>
+</div>
+
+<div class="ptr" id="ptr" aria-hidden="true">
+  <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/></svg>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1012,18 +1025,42 @@ async function cloudPull(){
     }
     const {data:rq}=await sb.from('requests').select('*').order('created_at',{ascending:false});
     cloudRequests=rq||[];
+    // Results live in their own table so players can add them; fold them
+    // back into the shape the rating engine already understands.
+    const {data:mx}=await sb.from('matches').select('*').order('ts',{ascending:true});
+    if(Array.isArray(mx))S.matches=mx.map(rowToMatch);
     cloudErr='';
   }catch(err){ cloudErr=String(err&&err.message||err); }
 }
 /* Only an admin may write the league. Debounced so a burst of edits is one write. */
+const rowToMatch=r=>({id:r.id,ts:+r.ts,season:r.season,tag:r.tag,slot:r.slot,
+  rated:r.rated!==false,ref:r.ref||null,a:[r.a1,r.a2],b:[r.b1,r.b2],sa:+r.sa,sb:+r.sb});
+const matchToRow=m=>({ts:m.ts,season:m.season||null,tag:m.tag||'match',slot:m.slot||null,
+  rated:m.rated!==false,ref:m.ref||null,a1:m.a[0],a2:m.a[1],b1:m.b[0],b2:m.b[1],sa:+m.sa,sb:+m.sb});
+/* Anyone signed in may add a result; only the admin may remove one. */
+async function cloudAddMatches(list){
+  if(!cloudOn())return true;
+  const {error}=await sb.from('matches').insert(list.map(matchToRow));
+  if(error){toast('Could not save the result: '+error.message);return false;}
+  await cloudPull(); refreshStats(); renderAll();
+  return true;
+}
+async function cloudDeleteMatch(id){
+  if(!cloudOn())return true;
+  const {error}=await sb.from('matches').delete().eq('id',id);
+  if(error){toast('Could not delete: '+error.message);return false;}
+  await cloudPull(); refreshStats(); renderAll();
+  return true;
+}
 function cloudPush(){
   if(!cloudOn()||!cloudAdmin)return;
   clearTimeout(pushTimer);
   pushTimer=setTimeout(async()=>{
     pushTimer=null; lastPush=Date.now();
     try{
+      const blob={...S,matches:[]};   // results have their own table now
       const {error}=await sb.from('league')
-        .upsert({id:1,data:S,updated_at:new Date().toISOString()},{onConflict:'id'});
+        .upsert({id:1,data:blob,updated_at:new Date().toISOString()},{onConflict:'id'});
       if(error)throw error;
       cloudErr='';
     }catch(err){ cloudErr=String(err&&err.message||err); toast('Could not save: '+cloudErr); }
@@ -1038,6 +1075,9 @@ function cloudSubscribe(){
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'requests'},async()=>{
       await cloudPull(); renderAll();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'matches'},async()=>{
+      await cloudPull(); refreshStats(); renderAll();
     })
     .subscribe();
 }
@@ -1078,6 +1118,12 @@ function renderCloudLogin(host){
     <div id="loginBody" style="margin-top:14px"></div>`;
   renderCloudLoginBody(loginMode==='new'?'new':'player');
   $$('#loginMode button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===(loginMode==='new'?'new':'player'))));
+}
+function setAdminHonesty(){
+  const el=$('#adminHonest'); if(!el)return;
+  el.textContent = cloudOn()
+    ? 'Real accounts. Passwords are hashed by the server, and admin rights are enforced by the database \u2014 editing this page in a browser will not get anyone past them.'
+    : 'A club sign-in, not security \u2014 the league is stored in this browser and the password is readable in the page source. It stops people casually rewriting ratings; it protects nothing valuable.';
 }
 function renderCloudLoginBody(mode){
   const host=$('#loginBody');
@@ -1132,6 +1178,14 @@ function renderCloudAccount(host){
         <span class="rs">${fmtDate(new Date(r.created_at).getTime())}${r.payload&&r.payload.note?' &middot; '+esc(r.payload.note):''}</span></span>
         <span class="rv"><span class="dchip ${cls}">${r.status}</span></span></div>`;}).join('')
       :'<div class="card"><div class="empty">Nothing yet.</div></div>'}</div>
+    <div class="sh"><h2>This sign-in</h2></div>
+    <div class="card">
+      <div class="sl"><span class="nm">Email</span><span class="note" style="text-align:right;grid-column:2/4">${esc(cloudUser&&cloudUser.email||'')}</span></div>
+      <div class="sl"><span class="nm">Admin</span><span class="note" style="text-align:right;grid-column:2/4">${cloudAdmin?'yes':'no'}</span></div>
+      <div class="sl"><span class="nm">On roster</span><span class="note" style="text-align:right;grid-column:2/4">${pid?esc(nameOf(pid)):'not linked yet'}</span></div>
+      <div class="sl" style="border-bottom:0"><span class="nm">User id</span><span class="note" style="text-align:right;grid-column:2/4;word-break:break-all;font-size:10.5px">${esc(myUid()||'')}</span></div>
+      ${cloudAdmin?'':'<p class="note" style="margin-top:10px">Expecting to be the admin? The id above has to be the one in the <b style="color:var(--tx)">admins</b> table. Signing in with a different email gives you a different id.</p>'}
+    </div>
     <div style="margin-top:14px"><button class="btn sec" id="cSignOut">Sign out</button></div>
     <div style="height:20px"></div>`;
   if(pid&&!cloudAdmin&&$('#reqSliders')){
@@ -1265,7 +1319,7 @@ function renderAccount(){
       <div class="phero"><div class="in">
         ${avatarName('Club Admin')}
         <div><h2 style="font-size:22px">Club admin</h2>
-          <div class="team">signed in on this device</div></div>
+          <div class="team">signed in</div></div>
       </div></div>
       <div class="sh"><h2>Waiting for you</h2></div>
       <button class="r" data-go="approve">
@@ -1341,8 +1395,9 @@ function renderLoginBody(mode){
       <div><label class="f" for="admUser">Username</label><input type="text" id="admUser" autocapitalize="characters" placeholder="DESKBALLADMIN"></div>
       <div><label class="f" for="admPass">Password</label><input type="password" id="admPass" placeholder="password"></div>
       <button class="btn" id="admGo">Sign in as admin</button>
-      <p class="note">A club sign-in, not security &mdash; the league is stored in this browser and the password is readable in the page source. It keeps other people from casually rewriting ratings; it does not protect anything valuable.</p>
+      <p class="note" id="adminHonest"></p>
     </div>`;
+    setAdminHonesty();
     return;
   }
   if(mode==='new'){
@@ -1840,12 +1895,24 @@ function lockRound(ri){
   const bad=r.games.some(g=>g.sa===''||g.sb===''||isNaN(+g.sa)||isNaN(+g.sb));
   if(bad){toast('Fill in every score on this round first.');return;}
   if(!S.settings.ties && r.games.some(g=>+g.sa===+g.sb)){toast('Drawn matches are switched off in Setup.');return;}
-  r.games.forEach(g=>{
-    S.matches.push({id:uid(),ts:Date.now(),season:S.season,tag:'meet',
-      slot:meet.slot, rated:meet.rated!==false, ref:meet.ref||null,
-      a:g.a.slice(),b:g.b.slice(),sa:+g.sa,sb:+g.sb});
-  });
-  r.done=true; save(); refreshStats();
+  const rows=r.games.map(g=>({id:uid(),ts:Date.now(),season:S.season,tag:'meet',
+    slot:meet.slot, rated:meet.rated!==false, ref:meet.ref||null,
+    a:g.a.slice(),b:g.b.slice(),sa:+g.sa,sb:+g.sb}));
+  r.done=true;
+  if(cloudOn()){
+    cloudAddMatches(rows).then(okd=>{
+      if(!okd){r.done=false;renderMeet();return;}
+      if(ri===meet.rounds.length-1){
+        if(meet.fmt==='mexicano')mexNext();
+        if(meet.fmt==='kings')kingsNext();
+      }
+      renderMeet();
+      toast('Round '+(ri+1)+' saved — '+rows.length+' result'+(rows.length>1?'s':'')+' added.');
+    });
+    return;
+  }
+  rows.forEach(m=>S.matches.push(m));
+  save(); refreshStats();
   if(ri===meet.rounds.length-1){
     if(meet.fmt==='mexicano')mexNext();
     if(meet.fmt==='kings')kingsNext();
@@ -1941,8 +2008,18 @@ function commitCup(){
   }
   if(!ties.length){toast('No completed ties to add yet.');return;}
   if(cup.committed){toast('These ties are already in the log — delete them there first.');return;}
-  ties.forEach(t=>S.matches.push({id:uid(),ts:Date.now(),season:S.season,tag:'cup',a:t.a.slice(),b:t.b.slice(),sa:t.sa,sb:t.sb}));
-  cup.committed=true; save(); renderAll();
+  const rows=ties.map(t=>({id:uid(),ts:Date.now(),season:S.season,tag:'cup',rated:true,
+    a:t.a.slice(),b:t.b.slice(),sa:t.sa,sb:t.sb}));
+  cup.committed=true;
+  if(cloudOn()){
+    cloudAddMatches(rows).then(okd=>{
+      if(okd)toast(ties.length+' cup tie'+(ties.length>1?'s':'')+' added to the ladder.');
+      else cup.committed=false;
+    });
+    return;
+  }
+  rows.forEach(m=>S.matches.push(m));
+  save(); renderAll();
   toast(`${ties.length} cup tie${ties.length>1?'s':''} added to the ladder.`);
 }
 
@@ -2015,7 +2092,7 @@ function renderHome(){
       <span class="ic"><svg viewBox="0 0 24 24">${ICON[ic]}</svg></span>${label}</button>`).join('');
 
   const mp=$('#meetPerm');
-  if(mp)mp.textContent=canEdit()?'':'Anyone can draw a meet to see who plays who. Saving the scores is the admin’s job.';
+  if(mp)mp.textContent=canEdit()?'':'Anyone can draw a meet and save the scores round by round.';
   const sn=S.seasons.find(s=>s.id===S.season);
   const n=S.matches.filter(m=>m.season===S.season).length;
   const played=Object.values(STATS).filter(s=>s.games>0);
@@ -2061,6 +2138,10 @@ function renderHome(){
   $('#homeLadder').innerHTML = list.length ? list.map(s=>ladderRow(s,ranked().indexOf(s)+1)).join('')
     : `<div class="card"><div class="empty">${q?'Nobody by that name.':'Nobody rated yet.'}</div></div>`;
 
+  const ft=$('#homeFoot');
+  if(ft)ft.textContent = cloudOn()
+    ? 'Ratings recomputed from the full match log · shared live with the club'
+    : 'Ratings recomputed from the full match log · saved on this device';
   const movers=played.filter(s=>Math.abs(s.last)>0.5).sort((a,b)=>Math.abs(b.last)-Math.abs(a.last)).slice(0,3);
   $('#homeMovers').innerHTML = movers.length ? movers.map(s=>`
     <button class="r" data-player="${s.id}">
@@ -2272,10 +2353,8 @@ function closeDrawer(){drawerPlayer=null;}
 function renderRecord(){
   const lock=$('#recordLock');
   if(lock)lock.innerHTML=canEdit()?'':
-    `<div class="card" style="text-align:center;padding:20px 16px;margin-bottom:14px">
-       <div style="font-size:24px;margin-bottom:6px">&#128274;</div>
-       <div style="font-weight:800;font-size:15px">The admin records results</div>
-       <p class="note" style="margin:7px auto 0;max-width:34ch">You can see every score and the whole ladder &mdash; entering them is the admin's job, so nobody can quietly rewrite a result.</p></div>`;
+    `<div class="card tight" style="margin-bottom:12px">
+       <p class="note">Anyone can record a result and it counts straight away. Only the admin can correct or delete one afterwards.</p></div>`;
   recordSlots().forEach(s=>playerOptions(s,s.value));
   if(!$('#matchDate').value)$('#matchDate').value=new Date().toISOString().slice(0,10);
   $('#scoreA').placeholder=S.settings.target;$('#scoreB').placeholder=S.settings.target;
@@ -2334,7 +2413,7 @@ function renderLog(){
       <span class="rm"><span class="rn" style="font-size:13.5px">${esc(pairName(aw?m.a:m.b))}</span>
         <span class="rs">beat ${esc(pairName(aw?m.b:m.a))} &middot; ${fmtDate(m.ts)}${m.slot?' &middot; '+slotName(m.slot):''}${m.ref?' &middot; ref '+esc(shortName(m.ref)):''}${m.rated===false?' &middot; unrated':''}</span></span>
       <span class="rv"><span class="rnum">${Math.max(m.sa,m.sb)}&ndash;${Math.min(m.sa,m.sb)}</span></span>
-      <button class="btn warn xs" data-del="${m.id}">Delete</button></div>`;}).join('')
+      ${canEdit()?`<button class="btn warn xs" data-del="${m.id}">Delete</button>`:''}</div>`;}).join('')
     : '<div class="card"><div class="empty">No matches recorded yet.</div></div>';
   $('#logNote').textContent = S.matches.length>25?`showing 25 of ${S.matches.length}`:`${S.matches.length} recorded`;
 }
@@ -2641,7 +2720,7 @@ function renderAdminSetup(){
     ? `<div class="card">
         <div style="display:flex;align-items:center;gap:11px">
           ${avatarName('Club Admin')}
-          <span class="rm"><span class="rn">Club admin</span><span class="rs">signed in on this device</span></span>
+          <span class="rm"><span class="rn">Club admin</span><span class="rs">signed in</span></span>
           <button class="btn sec xs" data-go="account">Account</button>
         </div>
         <div style="margin-top:12px"><button class="btn ${n?'':'sec'}" data-go="approve">
@@ -2659,6 +2738,10 @@ function renderSetup(){
   ['setupRoster','setupRules','setupDefaults','setupData'].forEach(id=>{
     const el=$('#'+id); if(el)el.hidden=ro;
   });
+  const dn=$('#dataNote');
+  if(dn)dn.textContent = cloudOn()
+    ? 'The league lives on the club\u2019s server and everyone shares it. Export writes a snapshot you can keep as a backup; Erase clears only this device\u2019s copy, not the shared league.'
+    : 'Everything lives in this browser. Export a copy to move the league to another phone, or to hand it to whoever runs the club next.';
   const sl=$('#setupLock');
   if(sl)sl.innerHTML=ro?
     `<div class="card" style="margin-top:12px"><p class="note">The roster, the rating rules and the season controls belong to the admin. Everything else here &mdash; the tour and light or dark &mdash; is yours.</p></div>`:'';
@@ -2872,8 +2955,8 @@ function renderIntro(){
    it on the next sync. Better to say no up front. */
 const canEdit=()=>!cloudWanted()||isAdmin();
 const ADMIN_ONLY=[
-  '#saveMatch','#addPlayer','#resetBtn','#importGo','#importBtn','#newSeason','#cupCommit',
-  '[data-lock]','[data-unlock]','[data-del]','[data-drop]','[data-toggle]','[data-rename]','[data-delcard]',
+  '#addPlayer','#resetBtn','#importGo','#importBtn','#newSeason',
+  '[data-del]','[data-drop]','[data-toggle]','[data-rename]','[data-delcard]',
   '#setK','#setCarry','#setMov','#setTies','#setBase','#setProv','#setTarget','#setSkillMax',
   '#setSeed','#setSeedMult','#setSwing','#ptsWin','#ptsLoss','#ptsBonus','#regress','#seasonPick'
 ].join(',');
@@ -3138,15 +3221,22 @@ $('#saveMatch').addEventListener('click',()=>{
   if(+sa===+sb&&!S.settings.ties){toast('Drawn matches are switched off in Setup.');return;}
   const dv=$('#matchDate').value;
   if(refNeeded($('#matchRef'))&&!$('#matchRef').value){toast('Pick the referee — it has to be a registered player who is not on court.');return;}
-  S.matches.push({id:uid(),ts:dv?new Date(dv+'T12:00:00').getTime():Date.now(),season:S.season,tag:'match',
+  const rec={id:uid(),ts:dv?new Date(dv+'T12:00:00').getTime():Date.now(),season:S.season,tag:'match',
     slot:$('#matchSlot').value, rated:$('#matchRated').checked, ref:$('#matchRef').value||null,
-    a:[v.a0,v.a1],b:[v.b0,v.b1],sa:+sa,sb:+sb});
-  save();
+    a:[v.a0,v.a1],b:[v.b0,v.b1],sa:+sa,sb:+sb};
   $('#scoreA').value='';$('#scoreB').value='';
+  if(cloudOn()){
+    const m2=`${+sa>+sb?pairName([v.a0,v.a1]):pairName([v.b0,v.b1])} win`;
+    cloudAddMatches([rec]).then(okd=>{if(okd)toast(m2+(rec.rated?' — ratings updated.':' — unrated.'));});
+    return;
+  }
+  S.matches.push(rec);
+  save();
   refreshStats();renderAll();
   toast(`${+sa>+sb?pairName([v.a0,v.a1]):pairName([v.b0,v.b1])} win — ratings updated.`);
 });
 $('#logTbl').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;
+  if(cloudOn()){cloudDeleteMatch(b.dataset.del).then(okd=>{if(okd)toast('Match deleted — ratings recomputed.');});return;}
   S.matches=S.matches.filter(m=>m.id!==b.dataset.del);save();refreshStats();renderAll();
   toast('Match deleted — ratings recomputed.');});
 
@@ -3360,10 +3450,77 @@ $('#importGo').addEventListener('click',()=>{
   }catch(err){toast('That does not look like a deskball league file.');}
 });
 $('#resetBtn').addEventListener('click',()=>{
-  if(!confirm('Erase every player, match, card and season from this browser? Export first if you want a copy.'))return;
+  const msg = cloudOn()
+    ? 'Clear this device\u2019s copy? The shared league on the server is untouched and will load again next time you open the app.'
+    : 'Erase every player, match, card and season from this browser? Export first if you want a copy.';
+  if(!confirm(msg))return;
   S=blank();meet=null;cup=null;$('#meetPicks')._sel=null;$('#cupPicks')._sel=null;
   signOut();save();go('setup');toast('League erased.');
 });
+
+/* ------------------------------------------------------ pull to refresh */
+(function(){
+  const el=$('#ptr');
+  const TRIGGER=72, MAX=110;
+  let startY=null, pulled=0, busy=false;
+  const set=(y,o)=>{el.style.transform='translate(-50%,'+y+'px)';el.style.opacity=o;};
+  const reset=()=>{el.style.transition='transform .25s ease,opacity .25s ease';set(-52,0);
+    setTimeout(()=>{el.style.transition='';},260);};
+
+  addEventListener('touchstart',e=>{
+    if(busy||e.touches.length!==1)return;
+    startY=(scrollY||document.documentElement.scrollTop)<=0?e.touches[0].clientY:null;
+    pulled=0;
+  },{passive:true});
+
+  addEventListener('touchmove',e=>{
+    if(startY===null||busy)return;
+    const d=e.touches[0].clientY-startY;
+    if(d<=0){pulled=0;set(-52,0);return;}
+    pulled=Math.min(d*0.5,MAX);
+    set(Math.min(pulled,MAX)-46, Math.min(pulled/TRIGGER,1));
+    el.classList.toggle('spin',pulled>=TRIGGER);
+  },{passive:true});
+
+  addEventListener('touchend',async()=>{
+    if(startY===null||busy){startY=null;return;}
+    const go=pulled>=TRIGGER; startY=null;
+    if(!go){reset();return;}
+    busy=true; el.classList.add('spin'); set(18,1);
+    try{
+      if(cloudOn()){ await cloudPull(); refreshStats(); renderAll(); }
+      else { refreshStats(); renderAll(); }
+    }catch(err){}
+    setTimeout(()=>{busy=false;el.classList.remove('spin');reset();},450);
+  },{passive:true});
+})();
+
+/* ------------------------------------------------ swipe from the left = back */
+(function(){
+  const EDGE=28, NEED=70;
+  let x0=null,y0=null,tracking=false;
+  const view=()=>$('#v-'+activeTab);
+  addEventListener('touchstart',e=>{
+    if(e.touches.length!==1)return;
+    const t=e.touches[0];
+    tracking = t.clientX<=EDGE && !ROOTS.includes(activeTab) && $('#intro').hidden;
+    x0=t.clientX; y0=t.clientY;
+  },{passive:true});
+  addEventListener('touchmove',e=>{
+    if(!tracking)return;
+    const t=e.touches[0], dx=t.clientX-x0, dy=Math.abs(t.clientY-y0);
+    if(dy>dx){tracking=false;const v=view();if(v)v.style.transform='';return;}
+    const v=view(); if(v&&dx>0)v.style.transform='translateX('+Math.min(dx*0.35,60)+'px)';
+  },{passive:true});
+  addEventListener('touchend',e=>{
+    if(!tracking)return;
+    tracking=false;
+    const v=view(); if(v){v.style.transition='transform .2s ease';v.style.transform='';
+      setTimeout(()=>{v.style.transition='';},220);}
+    const dx=(e.changedTouches[0].clientX)-x0;
+    if(dx>=NEED)back();
+  },{passive:true});
+})();
 
 /* ---------------------------------------------------------------- boot */
 try{document.documentElement.setAttribute('data-theme',localStorage.getItem('deskball.theme')||'light');}
@@ -3386,9 +3543,7 @@ cloudBoot();
 </script>
 
 <script>
-if('serviceWorker' in navigator){
-  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-}
+if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})});}
 </script>
 </body>
 </html>

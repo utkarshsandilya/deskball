@@ -74,3 +74,50 @@ begin
   begin execute 'alter publication supabase_realtime add table public.requests';
   exception when duplicate_object then null; end;
 end $$;
+
+-- ---------------------------------------------------------------------
+-- Matches live in their own table so that players can record their own
+-- scores without being able to touch ratings, the roster or the rules.
+-- (The league row is a single JSON document, so anyone allowed to write
+-- it could rewrite anything in it. A separate table is the only way to
+-- grant "may add a result" on its own.)
+-- ---------------------------------------------------------------------
+create table if not exists public.matches (
+  id          uuid        primary key default gen_random_uuid(),
+  created_by  uuid        not null default auth.uid() references auth.users(id) on delete set null,
+  ts          bigint      not null,
+  season      text,
+  tag         text,
+  slot        text,
+  rated       boolean     not null default true,
+  ref         text,
+  a1 text not null, a2 text not null,
+  b1 text not null, b2 text not null,
+  sa int not null, sb int not null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists matches_ts_idx on public.matches (ts desc);
+
+alter table public.matches enable row level security;
+
+drop policy if exists "match read"   on public.matches;
+drop policy if exists "match insert" on public.matches;
+drop policy if exists "match update" on public.matches;
+drop policy if exists "match delete" on public.matches;
+
+-- everyone signed in can read every result
+create policy "match read" on public.matches for select to authenticated using (true);
+-- any signed-in player may record a result, stamped with who entered it
+create policy "match insert" on public.matches for insert to authenticated
+  with check (created_by = auth.uid());
+-- only the admin may correct or remove one
+create policy "match update" on public.matches for update to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+create policy "match delete" on public.matches for delete to authenticated
+  using (public.is_admin());
+
+do $$
+begin
+  begin execute 'alter publication supabase_realtime add table public.matches';
+  exception when duplicate_object then null; end;
+end $$;
