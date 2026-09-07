@@ -912,7 +912,7 @@ function blank(){
   const sid=uid();
   return {v:1, settings:{...DEFAULTS},
     seasons:[{id:sid,name:'Season 1',started:Date.now()}], season:sid,
-    players:[], matches:[], ratings:[], accounts:[], requests:[]};
+    players:[], matches:[], ratings:[], accounts:[], requests:[], links:{}};
 }
 const SLOTS=[['snack','Snack break'],['lunch','Lunch break'],['after','After school'],['other','Somewhere else']];
 const slotName=k=>(SLOTS.find(s=>s[0]===k)||[,'Meet'])[1];
@@ -1145,12 +1145,24 @@ function renderCloudApprovals(host){
   const skills=cloudRequests.filter(r=>r.status==='pending'&&r.kind==='skill');
   host.innerHTML=`
     <div class="sh" style="margin-top:4px"><h2>New players</h2><span class="note">${joins.length} waiting</span></div>
-    <div class="rows">${joins.length?joins.map(r=>`
-      <div class="r static">${avatarName(r.payload.name||'?')}
-        <span class="rm"><span class="rn">${esc(r.payload.name||'Someone')}</span>
-          <span class="rs">signed up ${fmtDate(new Date(r.created_at).getTime())}</span></span>
-        <button class="btn xs" data-cjoin="${r.id}" data-uid="${r.user_id}">Add to roster</button>
-        <button class="btn warn xs" data-cno="${r.id}">No</button></div>`).join('')
+    <div class="rows">${joins.length?joins.map(r=>{
+      const nm=(r.payload.name||'').trim();
+      const linked=new Set(Object.values(S.links||{}));
+      const free=S.players.filter(p=>!linked.has(p.id));
+      const match=free.find(p=>p.name.toLowerCase()===nm.toLowerCase());
+      return `<div class="card">
+        <div style="display:flex;align-items:center;gap:11px">${avatarName(nm||'?')}
+          <span class="rm"><span class="rn">${esc(nm||'Someone')}</span>
+            <span class="rs">signed up ${fmtDate(new Date(r.created_at).getTime())}${
+              match?' &middot; matches a player already on the roster':''}</span></span></div>
+        <div style="margin-top:11px"><label class="f">Who is this on the roster?</label>
+          <select data-link="${r.id}">
+            ${free.map(p=>`<option value="${p.id}"${match&&p.id===match.id?' selected':''}>${esc(p.name)}</option>`).join('')}
+            <option value=""${match?'':' selected'}>&mdash; add ${esc(nm||'them')} as a new player &mdash;</option>
+          </select></div>
+        <div class="brow" style="margin-top:12px">
+          <button class="btn sm" data-cjoin="${r.id}" data-uid="${r.user_id}">Approve</button>
+          <button class="btn warn sm" data-cno="${r.id}">Decline</button></div></div>`;}).join('')
       :'<div class="card"><div class="empty">Nobody waiting.</div></div>'}</div>
 
     <div class="sh"><h2>Skill requests</h2><span class="note">${skills.length} waiting</span></div>
@@ -2964,13 +2976,17 @@ $('#v-approve').addEventListener('click',async e=>{
   const cj=e.target.closest('[data-cjoin]');
   if(cj){
     const r=cloudRequests.find(x=>String(x.id)===cj.dataset.cjoin);
-    const nm=(r&&r.payload&&r.payload.name)||'New player';
-    let p=S.players.find(x=>x.name.toLowerCase()===nm.toLowerCase());
+    const nm=((r&&r.payload&&r.payload.name)||'New player').trim();
+    const sel=document.querySelector('[data-link="'+cj.dataset.cjoin+'"]');
+    const chosen=sel?sel.value:'';
+    let p=chosen?byId(chosen):null;
+    const isNew=!p;
     if(!p){p={id:uid(),name:nm,active:true,joined:Date.now()};S.players.push(p);}
     if(!S.links)S.links={};
     S.links[cj.dataset.uid]=p.id;
     save(); await cloudSetRequest(cj.dataset.cjoin,'approved');
-    renderAll(); toast(nm+' added to the roster.');
+    renderAll();
+    toast(isNew?nm+' added to the roster.':nm+' linked to '+p.name+' — rating kept.');
     return;
   }
   const cs=e.target.closest('[data-cskill]');
