@@ -1,0 +1,3368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Deskball Federation — the club ladder, meets, cups and skill profiles.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#F8F7FD">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Deskball">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<style>html,body{margin:0;padding:0}img{max-width:100%}</style>
+<!-- Supabase client. Remove this line if you are staying offline-only. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<title>Deskball Federation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap">
+<style>
+/* Deskball — mobile web app. Committed dark identity: every colour painted explicitly. */
+:root{
+  /* Light is the app's own look. Dark is a choice, never the OS's — the
+     page ignores prefers-color-scheme so it opens light for everyone. */
+  --bg:#E9E6F5; --app:#F8F7FD; --app2:#F2F0FA;
+  --card:#FFFFFF; --card2:#F3F1FC; --card3:#E4DFF8;
+  --stroke:rgba(28,16,80,.10); --stroke2:rgba(28,16,80,.18);
+  --tx:#17103B; --dim:#4E477A; --dim2:#6F688F;
+  --vio:#6B3AF0; --vio2:#5B2BD9; --mag:#B633E0;
+  --good:#0E9468; --bad:#D62B57; --live:#E11D48; --gold:#946009;
+  --grad:linear-gradient(135deg,#7C4DFF 0%,#A855F7 55%,#C44BF0 100%);
+  --glow:radial-gradient(circle,rgba(124,77,255,.16),transparent 68%);
+  --tabbg:rgba(255,255,255,.93);
+  --fabring:#FFFFFF;
+  --mcard:linear-gradient(158deg,#F3EEFF 0%,#FFFFFF 58%,#F7EDFF 100%);
+  --phero:linear-gradient(165deg,#7C4DFF,#9B3FE8);
+  --pairborder:#FFFFFF;
+  --pheroborder:#8A4BF2;
+  --toastbg:#17103B; --toasttx:#FFFFFF;
+  --lift:0 1px 2px rgba(28,16,80,.06),0 1px 1px rgba(28,16,80,.04);
+  --f:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+:root[data-theme="dark"]{
+  --bg:#080520; --app:#120B33; --app2:#170F3E;
+  --card:#1E1547; --card2:#271C58; --card3:#332570;
+  --stroke:rgba(255,255,255,.08); --stroke2:rgba(255,255,255,.16);
+  --tx:#FFFFFF; --dim:#ABA1D2; --dim2:#7C71AA;
+  --vio:#7C4DFF; --vio2:#A98BFF; --mag:#C44BF0;
+  --good:#38E0A6; --bad:#FF6E8A; --live:#FF4166; --gold:#FFC24B;
+  --glow:radial-gradient(circle,rgba(124,77,255,.36),transparent 66%);
+  --tabbg:rgba(35,25,84,.94);
+  --fabring:#231954;
+  --mcard:linear-gradient(158deg,#33246F 0%,#1B1244 62%,#241757 100%);
+  --phero:linear-gradient(165deg,#3A2880,#1D1349);
+  --pairborder:#241757;
+  --pheroborder:#24184F;
+  --toastbg:#FFFFFF; --toasttx:#160E3C;
+  --lift:none;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--tx);font-family:var(--f);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{margin:0;font-weight:800;letter-spacing:-.02em;text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--vio2);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+::-webkit-scrollbar{width:0;height:0}
+
+.app{max-width:460px;margin:0 auto;min-height:100dvh;background:var(--app);position:relative;
+  padding-bottom:118px;overflow-x:hidden;isolation:isolate}
+.app::before{content:"";position:absolute;top:-140px;left:50%;transform:translateX(-50%);width:420px;height:340px;
+  background:var(--glow);pointer-events:none;z-index:0}
+.pad{padding:0 18px;position:relative;z-index:1}
+.view[hidden]{display:none!important}
+.gap{display:grid;gap:12px}
+
+/* ---------- top bars ---------- */
+.top{display:flex;align-items:center;gap:12px;padding:18px 18px 8px;position:relative;z-index:2}
+.top .grow{flex:1;min-width:0}
+.tt{font-size:16px;font-weight:800;text-align:center;flex:1}
+.hello{font-size:13px;color:var(--dim);font-weight:500}
+.welcome{font-size:26.5px;font-weight:800;line-height:1.15;margin-top:1px}
+.welcome em{font-style:italic;color:var(--vio2)}
+.ib{width:42px;height:42px;flex:0 0 42px;border-radius:15px;background:var(--card);border:1px solid var(--stroke);
+  display:grid;place-items:center;cursor:pointer;color:var(--tx)}
+.ib:active{background:var(--card2)}
+.ib svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- search + chips ---------- */
+.search{display:flex;gap:10px;align-items:center;margin-top:14px}
+.sbox{flex:1;display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--stroke);
+  border-radius:17px;padding:12px 15px;min-width:0}
+.sbox svg{width:17px;height:17px;flex:0 0 17px;fill:none;stroke:var(--dim2);stroke-width:2;stroke-linecap:round}
+.sbox input{flex:1;background:none;border:0;color:var(--tx);font:inherit;outline:none;min-width:0;padding:0}
+.sbox input::placeholder{color:var(--dim2)}
+.chips{display:flex;gap:9px;overflow-x:auto;margin:14px -18px 0;padding:0 18px 2px}
+.chip{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--stroke);
+  border-radius:999px;padding:7px 15px 7px 7px;font-size:13px;font-weight:700;color:var(--dim);cursor:pointer;white-space:nowrap}
+.chip .ic{width:27px;height:27px;border-radius:50%;background:var(--card3);display:grid;place-items:center;flex:0 0 27px}
+.chip .ic svg{width:14px;height:14px;fill:none;stroke:var(--vio2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chip[data-on="1"]{background:var(--vio);color:#fff;border-color:transparent}
+.chip[data-on="1"] .ic{background:rgba(255,255,255,.22)}
+.chip[data-on="1"] .ic svg{stroke:#fff}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--stroke);border-radius:24px;padding:16px;position:relative;z-index:1;box-shadow:var(--lift)}
+.card.tight{padding:13px 14px;border-radius:20px}
+.hero{background:var(--grad);color:#fff;border-radius:26px;padding:19px;position:relative;overflow:hidden;z-index:1}
+.hero::after{content:"";position:absolute;right:-46px;bottom:-72px;width:180px;height:180px;border-radius:50%;
+  background:rgba(255,255,255,.13)}
+.hero::before{content:"";position:absolute;right:36px;top:-58px;width:104px;height:104px;border-radius:50%;
+  background:rgba(255,255,255,.09)}
+.hero .in{position:relative;z-index:1}
+.hero .eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.72)}
+.hero h3{font-size:22.5px;margin-top:5px}
+.hero .sub{font-size:13px;color:rgba(255,255,255,.8);margin-top:3px;font-weight:500}
+.hero .btnw{margin-top:14px;display:inline-flex;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);
+  border-radius:13px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;color:#fff}
+.sh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:24px 0 12px}
+.sh h2{font-size:18px}
+.sh .lk{font-size:12.5px;color:var(--vio2);background:none;border:0;cursor:pointer;font-weight:700;padding:0}
+.note{font-size:12.5px;color:var(--dim2);font-weight:500;line-height:1.5}
+.lede{font-size:13.5px;color:var(--dim);margin-top:8px;line-height:1.6}
+
+/* ---------- list rows ---------- */
+.rows{display:grid;gap:9px}
+.r{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--stroke);border-radius:19px;
+  padding:11px 14px;width:100%;text-align:left;cursor:pointer;box-shadow:var(--lift)}
+.r:active{background:var(--card2)}
+.r.static{cursor:default}
+.rk{width:20px;flex:0 0 20px;text-align:center;font-size:13px;font-weight:800;color:var(--dim2);font-variant-numeric:tabular-nums}
+.r.first .rk{color:var(--gold)}
+.av{width:40px;height:40px;flex:0 0 40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;
+  color:#fff;background:var(--grad);letter-spacing:-.02em}
+.av.sm{width:32px;height:32px;flex:0 0 32px;font-size:11.5px}
+.av.lg{width:96px;height:96px;flex:0 0 96px;font-size:32px;border:4px solid var(--app)}
+.rm{flex:1;min-width:0}
+.rn{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs{font-size:12px;color:var(--dim2);margin-top:1px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv{text-align:right;flex:0 0 auto;display:grid;gap:3px;justify-items:end}
+.rnum{font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;line-height:1.1}
+.dchip{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px}
+.dchip.up{background:rgba(56,224,166,.15);color:var(--good)}
+.dchip.down{background:rgba(255,110,138,.15);color:var(--bad)}
+.dchip.flat{background:rgba(255,255,255,.07);color:var(--dim2)}
+.tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  padding:2px 7px;border-radius:6px;background:var(--card3);color:var(--vio2)}
+.form{display:flex;gap:3px}
+.form i{width:6px;height:16px;border-radius:3px;display:block;background:var(--card3)}
+.form i.w{background:var(--good)} .form i.l{background:var(--bad)} .form i.d{background:var(--dim2)}
+.empty{text-align:center;padding:30px 16px;color:var(--dim2);font-size:13px;font-weight:500}
+
+/* ---------- tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tiles.t2{grid-template-columns:repeat(2,1fr)}
+.tile{background:var(--card);border:1px solid var(--stroke);border-radius:19px;padding:13px 10px;text-align:center;box-shadow:var(--lift)}
+.tile .k{font-size:11px;color:var(--dim2);font-weight:700}
+.tile .v{font-size:22px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;line-height:1.15}
+.tile .v small{font-size:12px;color:var(--dim2);font-weight:700}
+
+/* ---------- segmented ---------- */
+.segs{display:flex;gap:7px;overflow-x:auto;margin:0 -18px;padding:0 18px}
+.segs button{flex:0 0 auto;background:var(--card);border:1px solid var(--stroke);color:var(--dim);border-radius:999px;
+  padding:9px 17px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.segs button[aria-pressed="true"]{background:var(--vio);color:#fff;border-color:transparent}
+
+/* ---------- forms ---------- */
+label.f{display:block;font-size:11.5px;font-weight:700;color:var(--dim2);margin-bottom:6px}
+input[type=text],input[type=number],input[type=date],input[type=password],select,textarea{width:100%;background:var(--card2);
+  border:1px solid var(--stroke);border-radius:14px;padding:12px 13px;color:var(--tx);font:inherit;font-size:14px;outline:none}
+input[type=number]{font-variant-numeric:tabular-nums}
+input::placeholder,textarea::placeholder{color:var(--dim2)}
+input:focus,select:focus,textarea:focus{border-color:var(--vio)}
+textarea{min-height:110px;resize:vertical;font-size:12px;line-height:1.5}
+select{appearance:none;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,var(--dim2) 50%),linear-gradient(135deg,var(--dim2) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 20px,calc(100% - 12px) 20px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;padding:0;border:0;height:26px}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:var(--card3)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;
+  border:5px solid var(--vio);margin-top:-7px}
+input[type=range]::-moz-range-track{height:6px;border-radius:99px;background:var(--card3)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:5px solid var(--vio)}
+.ck{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:pointer}
+.ck input{width:19px;height:19px;flex:0 0 19px;accent-color:var(--vio);padding:0;border-radius:6px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--grad);color:#fff;border:0;
+  border-radius:16px;padding:14px 20px;font-weight:800;font-size:14px;cursor:pointer;width:100%;
+  box-shadow:0 8px 20px -8px rgba(124,77,255,.8)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;box-shadow:none}
+.btn.sec{background:var(--card2);border:1px solid var(--stroke);box-shadow:none;color:var(--tx)}
+.btn.warn{background:rgba(255,110,138,.13);color:var(--bad);border:1px solid rgba(255,110,138,.32);box-shadow:none}
+.btn.sm{padding:10px 15px;font-size:13px;width:auto;border-radius:13px}
+.btn.xs{padding:7px 11px;font-size:11.5px;width:auto;border-radius:10px;box-shadow:none}
+.brow{display:flex;gap:9px;flex-wrap:wrap}
+
+/* ---------- match card ---------- */
+.mcard{border-radius:26px;padding:17px;background:var(--mcard);
+  border:1px solid var(--stroke2);position:relative;overflow:hidden;z-index:1;box-shadow:var(--lift)}
+.mcard .mtop{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--dim);font-weight:600}
+.mt{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-top:14px}
+.mt .sd{display:grid;justify-items:center;gap:8px;min-width:0}
+.mt .sd .nm{font-size:12.5px;font-weight:700;text-align:center;line-height:1.25}
+.mt .mid{text-align:center}
+.mt .sc{font-size:31px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.livechip{display:inline-block;background:var(--live);color:#fff;font-size:9.5px;font-weight:800;padding:3px 9px;
+  border-radius:999px;letter-spacing:.09em;text-transform:uppercase;margin-top:4px}
+.livechip.done{background:var(--card3);color:var(--dim)}
+.pairav{display:flex}
+.pairav .av{margin-left:-11px;border:2px solid var(--pairborder)}
+.pairav .av:first-child{margin-left:0}
+
+/* ---------- player hero ---------- */
+.phero{border-radius:28px;padding:20px 18px 18px;background:var(--phero);color:#fff;
+  border:1px solid var(--stroke2);position:relative;overflow:hidden;z-index:1}
+.phero::after{content:"";position:absolute;right:-56px;top:-56px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06)}
+.phero .in{display:flex;gap:16px;align-items:center;position:relative;z-index:1}
+.phero h2{font-size:26px;line-height:1.08}
+.phero .team{font-size:12.5px;color:rgba(255,255,255,.82);font-weight:700;margin-top:5px}
+.phero .tile .v small{color:rgba(255,255,255,.72)}
+.phero .badge{position:absolute;left:76px;top:76px;width:30px;height:30px;border-radius:10px;background:var(--vio);
+  display:grid;place-items:center;font-size:13px;font-weight:800;border:3px solid var(--pheroborder);z-index:2}
+
+/* ---------- donut + charts ---------- */
+.perf{display:flex;gap:16px;align-items:center}
+.donut{width:96px;height:96px;flex:0 0 96px;position:relative}
+.donut svg{width:100%;height:100%;transform:rotate(-90deg)}
+.donut .trk{fill:none;stroke:var(--card3);stroke-width:11}
+.donut .val{fill:none;stroke:url(#dg);stroke-width:11;stroke-linecap:round}
+.donut .mid{position:absolute;inset:0;display:grid;place-items:center;font-size:21px;font-weight:800}
+.chart{width:100%;height:auto;aspect-ratio:16/7;display:block;overflow:visible}
+.chart .gl{stroke:var(--stroke);stroke-width:1}
+.chart .lbl{fill:var(--dim2);font-size:9px;font-weight:600;font-family:var(--f)}
+.chart .area{fill:url(#ag);stroke:none}
+.chart .ln{fill:none;stroke:var(--vio2);stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round}
+.chart .pt{fill:#fff;stroke:var(--vio);stroke-width:3}
+.radar{width:100%;height:auto;display:block;max-width:330px;margin:2px auto}
+.radar .web{fill:none;stroke:var(--stroke)}
+.radar .spoke{stroke:var(--stroke)}
+.radar .fillp{fill:var(--vio);fill-opacity:.28;stroke:var(--vio2);stroke-width:2.2;stroke-linejoin:round}
+.radar .knot{fill:#fff;stroke:var(--vio);stroke-width:2.4}
+.radar .ax{fill:var(--dim);font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-family:var(--f)}
+.radar .axv{fill:var(--vio2);font-size:9.5px;font-weight:800;font-family:var(--f)}
+.sl{display:grid;grid-template-columns:78px 1fr 32px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--stroke)}
+.sl:last-child{border-bottom:0}
+.sl .nm{font-size:11.5px;font-weight:700;color:var(--dim)}
+.sl .vv{font-size:15px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.sbar{display:flex;gap:3px}
+.sbar i{flex:1;height:8px;border-radius:3px;background:var(--card3);display:block}
+.sbar i.on{background:var(--vio2)}
+.sbar i.half{background:linear-gradient(90deg,var(--vio2) 50%,var(--card3) 50%)}
+.mini5{display:flex;gap:2px}
+.mini5 i{width:4px;border-radius:2px;background:var(--card3);display:block}
+.mini5 i b{display:block;width:100%;border-radius:2px;background:var(--vio2)}
+
+/* ---------- leaders ---------- */
+.leadwrap{display:flex;gap:10px;overflow-x:auto;margin:0 -18px;padding:0 18px 2px}
+.lead{flex:0 0 148px;background:var(--card);border:1px solid var(--stroke);border-radius:20px;padding:14px;box-shadow:var(--lift)}
+.lead .k{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--vio2)}
+.lead .who{font-size:15px;font-weight:800;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lead .sc{font-size:23px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+.lead .sc small{font-size:12px;color:var(--dim2)}
+.lead .bl{font-size:10.5px;color:var(--dim2);margin-top:6px;line-height:1.35;font-weight:500}
+
+/* ---------- meet sheet ---------- */
+.round{background:var(--card);border:1px solid var(--stroke);border-radius:22px;padding:14px;margin-bottom:11px;box-shadow:var(--lift)}
+.round.done{border-color:rgba(56,224,166,.28)}
+.rhead{display:flex;align-items:center;gap:9px}
+.rhead h3{font-size:15px}
+.rhead .sit{margin-left:auto;font-size:10.5px;color:var(--dim2);font-weight:600;text-align:right;max-width:52%}
+.rhead .sit b{color:var(--gold);font-weight:700}
+.fixr{display:grid;grid-template-columns:1fr 96px 1fr;gap:8px;align-items:center;padding:11px 0;border-top:1px solid var(--stroke);margin-top:10px}
+.fixr .pn{font-size:12.5px;font-weight:700;line-height:1.3}
+.fixr .pn.b{text-align:right}
+.fixr .mid{display:flex;align-items:center;gap:5px;justify-content:center}
+.fixr input{width:39px;padding:8px 2px;text-align:center;font-weight:800;border-radius:11px;font-size:15px}
+.fixr .dash{color:var(--dim2);font-weight:800}
+.desknum{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--dim2);text-align:center;
+  grid-column:1/-1;margin-bottom:-4px}
+
+/* ---------- bracket ---------- */
+.bracket{display:flex;gap:12px;overflow-x:auto;margin:0 -18px;padding:0 18px 6px}
+.bcol{flex:0 0 200px;display:flex;flex-direction:column;gap:10px;justify-content:space-around}
+.bcol h4{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--dim2);text-align:center}
+.bm{background:var(--card);border:1px solid var(--stroke);border-radius:16px;overflow:hidden}
+.bm.live{border-color:var(--vio);box-shadow:0 0 0 1px var(--vio)}
+.bt{display:flex;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid var(--stroke);font-size:12.5px}
+.bt:last-child{border-bottom:0}
+.bt .sd{font-size:9.5px;font-weight:800;color:var(--dim2);width:14px;flex:0 0 14px}
+.bt .nx{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.bt.won{background:rgba(124,77,255,.16)}
+.bt.won .nx{font-weight:800}
+.bt.bye{color:var(--dim2);font-style:italic}
+.bt input{width:36px;padding:5px 2px;text-align:center;font-weight:800;border-radius:9px;font-size:12.5px}
+.champ{background:var(--grad);color:#fff;border-radius:22px;padding:18px;text-align:center;margin-top:14px}
+.champ .k{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.8)}
+.champ .v{font-size:23px;font-weight:800;margin-top:5px}
+
+/* ---------- picks ---------- */
+.picks{display:flex;flex-wrap:wrap;gap:8px}
+.pk{display:inline-flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--stroke);
+  border-radius:999px;padding:7px 14px 7px 8px;font-size:13px;font-weight:600;cursor:pointer;color:var(--dim)}
+.pk .av{width:24px;height:24px;flex:0 0 24px;font-size:10px;opacity:.85}
+.pk input{display:none}
+.pk[data-on="1"]{background:var(--vio);color:#fff;border-color:transparent}
+.pk[data-on="1"] .av{background:rgba(255,255,255,.24)}
+
+/* ---------- banner / toast / tabbar ---------- */
+.banner{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,rgba(255,194,75,.16),rgba(255,194,75,.06));
+  border:1px solid rgba(255,194,75,.32);border-radius:19px;padding:12px 14px;font-size:12.5px;color:var(--dim);font-weight:500}
+.banner b{color:var(--gold);display:block;font-size:12px;font-weight:800;margin-bottom:2px}
+.toast{position:fixed;left:50%;bottom:130px;transform:translate(-50%,14px);background:var(--toastbg);color:var(--toasttx);
+  padding:11px 18px;border-radius:14px;font-size:13px;font-weight:700;z-index:90;opacity:0;pointer-events:none;
+  transition:.2s;max-width:calc(100% - 40px);text-align:center;box-shadow:0 10px 34px rgba(0,0,0,.5)}
+.toast[data-on="1"]{opacity:1;transform:translate(-50%,0)}
+.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;width:min(424px,calc(100% - 30px));
+  background:var(--tabbg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--stroke2);border-radius:26px;display:grid;grid-template-columns:repeat(5,1fr);
+  align-items:end;padding:10px 6px;z-index:50}
+.tb{background:none;border:0;display:grid;justify-items:center;gap:4px;color:var(--dim2);cursor:pointer;
+  font-size:9.5px;font-weight:800;padding:3px 0;letter-spacing:.02em}
+.tb svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tb[aria-selected="true"]{color:var(--vio2)}
+.tb.fab{gap:0}
+.tb.fab .ring{width:54px;height:54px;border-radius:50%;background:var(--grad);display:grid;place-items:center;
+  margin-top:-28px;margin-bottom:4px;box-shadow:0 10px 24px -6px rgba(124,77,255,.55);border:4px solid var(--fabring);color:#fff}
+.tb.fab .ring svg{width:23px;height:23px;stroke-width:2.4}
+/* ---------- first-run tour ---------- */
+.intro{position:fixed;inset:0;z-index:200;background:var(--app);overflow-y:auto;
+  display:flex;justify-content:center;align-items:stretch;padding:24px 20px 26px}
+.intro[hidden]{display:none!important}
+.introin{width:min(430px,100%);min-height:100%;display:flex;flex-direction:column;
+  gap:18px;position:relative;justify-content:space-between}
+#introSlides{flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:14px 0}
+.introskip{position:absolute;top:-14px;right:-4px;background:none;border:0;color:var(--dim2);
+  font-weight:700;font-size:13px;cursor:pointer;padding:8px;z-index:2}
+.slideart{height:clamp(180px,30vh,250px);border-radius:26px;background:var(--grad);display:grid;place-items:center;
+  position:relative;overflow:hidden;box-shadow:var(--lift)}
+.slideart.plain{background:var(--card);border:1px solid var(--stroke)}
+.slideart .r,.slideart .bm{box-shadow:none}
+.slidebody h2{font-size:28px;line-height:1.12}
+.slidebody p{margin-top:12px;color:var(--dim);font-size:15.5px;line-height:1.62}
+.slidebody p b{color:var(--tx);font-weight:700}
+.introfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px}
+.dots{display:flex;gap:6px}
+.dots i{width:7px;height:7px;border-radius:99px;background:var(--card3);display:block;transition:.2s}
+.dots i.on{background:var(--vio);width:20px}
+.introbtns{display:flex;gap:8px}
+.roles{display:grid;gap:9px;margin-top:16px}
+/* ---------- motion ----------
+   Everything here animates transform or opacity only, so it runs on the
+   compositor and stays smooth on an old school phone. */
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes upIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes artIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.view:not([hidden]){animation:viewIn .28s cubic-bezier(.22,.7,.3,1) both}
+.btn,.chip,.pk,.segs button,.tb,.ib,.r,.card,.tile,.lead{
+  transition:transform .16s cubic-bezier(.22,.7,.3,1),background-color .18s ease,color .18s ease,border-color .18s ease}
+.btn:active{transform:scale(.97)}
+.r:active,.chip:active,.pk:active,.ib:active{transform:scale(.985)}
+.tb:active{transform:scale(.94)}
+.tb.fab .ring{transition:transform .16s cubic-bezier(.22,.7,.3,1)}
+.tb.fab:active .ring{transform:scale(.92)}
+@media (hover:hover){
+  .r:hover,.lead:hover{transform:translateY(-1px)}
+  .btn:hover{transform:translateY(-1px)}
+  .btn:active{transform:scale(.97)}
+}
+.donut .val{transition:stroke-dasharray .75s cubic-bezier(.22,.7,.3,1)}
+.intro:not([hidden]){animation:fadeIn .22s ease both}
+#introSlides .slideart{animation:artIn .44s cubic-bezier(.22,.7,.3,1) both}
+#introSlides .slidebody h2{animation:upIn .44s .05s cubic-bezier(.22,.7,.3,1) both}
+#introSlides .slidebody p{animation:upIn .44s .11s cubic-bezier(.22,.7,.3,1) both}
+#introSlides .roles{animation:upIn .44s .17s cubic-bezier(.22,.7,.3,1) both}
+.dots i{transition:width .28s cubic-bezier(.22,.7,.3,1),background-color .28s ease}
+@media (prefers-reduced-motion:reduce){
+  .view:not([hidden]),#introSlides *,.intro:not([hidden]){animation:none!important}
+}
+.foot{text-align:center;font-size:11px;color:var(--dim2);padding:26px 18px 6px;font-weight:500}
+
+/* ---------- wider screens ---------- */
+@media (min-width:620px){
+  .app{max-width:620px}
+  .tabbar{width:min(580px,calc(100% - 30px))}
+  .court{grid-template-columns:1fr auto 1fr}
+  .tiles.t2{grid-template-columns:repeat(2,1fr)}
+}
+@media (min-width:960px){
+  .app{max-width:1000px;display:flex;flex-direction:column;padding-bottom:56px}
+  .app::before{width:1000px;height:460px;top:-190px}
+  /* the floating bar becomes a top nav */
+  .tabbar{order:-1;position:sticky;top:14px;left:auto;bottom:auto;transform:none;
+    width:calc(100% - 48px);margin:16px auto 6px;display:flex;justify-content:center;
+    align-items:center;gap:4px;border-radius:20px;padding:8px}
+  .tb{flex-direction:row;align-items:center;gap:9px;padding:10px 20px;border-radius:14px;
+    font-size:13.5px;letter-spacing:0}
+  .tb svg{width:18px;height:18px}
+  .tb[aria-selected="true"]{background:var(--card3)}
+  .tb.fab .ring{width:38px;height:38px;margin:0;border:0;box-shadow:0 6px 16px -7px rgba(124,77,255,.9)}
+  .tb.fab .ring svg{width:18px;height:18px;stroke-width:2.6}
+  .view{width:100%}
+  .top{max-width:880px;margin:0 auto;width:100%;padding:16px 24px 8px}
+  .pad{max-width:880px;margin:0 auto;padding:0 24px}
+  /* stop the mobile edge-bleed once the column is centred */
+  .chips,.segs,.leadwrap,.bracket{margin-left:0;margin-right:0;padding-left:0;padding-right:0}
+  .leadwrap{flex-wrap:wrap;overflow:visible}
+  .lead{flex:1 1 170px}
+  /* lists that are not rankings can sit two abreast */
+  #moreMenu,#logTbl,#cardTbl,#standTbl{grid-template-columns:1fr 1fr}
+  .toast{bottom:34px}
+  .welcome{font-size:29px}
+  .sh h2{font-size:19px}
+  .intro .introin{width:min(560px,100%)}
+  .slidebody h2{font-size:32px}
+  .slidebody p{font-size:16.5px}
+  .slideart{height:clamp(200px,34vh,290px)}
+}
+@media (min-width:1240px){
+  .app{max-width:1120px}
+  .top,.pad{max-width:1000px}
+  #ladderTbl,#skillTbl{grid-template-columns:1fr 1fr}
+}
+
+</style>
+</head>
+<body>
+
+
+<div class="app">
+
+  <!-- ===================== HOME ===================== -->
+  <section class="view" id="v-home">
+    <div class="top">
+      <div class="grow">
+        <div class="hello">Deskball Federation</div>
+        <div class="welcome">Welcome <em>back!</em></div>
+      </div>
+      <button class="ib" data-go="account" aria-label="Your account" id="homeAccount">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8.4" r="3.6"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/></svg></button>
+    </div>
+    <div class="pad">
+      <div class="search">
+        <div class="sbox">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+          <input type="text" id="homeSearch" placeholder="Find a player">
+        </div>
+        <button class="ib" data-go="skills" aria-label="Skill profiles">
+          <svg viewBox="0 0 24 24"><path d="M4 7h8M16 7h4M4 17h4M12 17h8"/><circle cx="14" cy="7" r="2.1"/><circle cx="9" cy="17" r="2.1"/></svg></button>
+      </div>
+
+      <div class="chips" id="homeChips"></div>
+      <div id="demoBanner" hidden style="margin-top:15px"></div>
+      <div style="margin-top:16px" id="homeHero"></div>
+
+      <div class="sh"><h2>Latest result</h2><button class="lk" data-go="record">Record one</button></div>
+      <div id="homeMatch"></div>
+
+      <div class="sh"><h2>Top of the ladder</h2><button class="lk" data-go="ladder">See all</button></div>
+      <div class="rows" id="homeLadder"></div>
+
+      <div class="sh"><h2>Biggest movers</h2><span class="note">last match played</span></div>
+      <div class="rows" id="homeMovers"></div>
+
+      <div class="foot">Ratings recomputed from the full match log &middot; saved on this device</div>
+    </div>
+  </section>
+
+  <!-- ===================== LADDER ===================== -->
+  <section class="view" id="v-ladder" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">The Ladder</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <div id="leaderBlock"></div>
+      <div class="segs" style="margin-top:16px" id="ladderScope">
+        <button data-scope="all" aria-pressed="true">All time</button>
+        <button data-scope="season" aria-pressed="false">This season</button>
+      </div>
+      <div class="search" style="margin-top:12px">
+        <div class="sbox">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+          <input type="text" id="ladderSearch" placeholder="Search the roster">
+        </div>
+      </div>
+      <div style="margin-top:12px"><label class="f" for="minGames">Minimum matches played &mdash; <b id="mgEcho" style="color:var(--vio2)">0</b></label>
+        <input type="range" id="minGames" min="0" max="20" step="1" value="0"></div>
+      <div class="note" id="ladderNote" style="margin:10px 0 10px"></div>
+      <div class="rows" id="ladderTbl"></div>
+      <p class="lede">DBR is a doubles-adjusted Elo. Each season opens with everyone on their <b>skill index &times; 100</b>, so the admin's ratings set the starting order and results take over from there; a pair's strength is the average of its two players, the winning margin scales the swing, and underdog credit hands more of a win to the lower-rated partner. Under <b id="provEcho">6</b> matches a rating is provisional.</p>
+      <div style="height:20px"></div>
+    </div>
+  </section>
+
+  <!-- ===================== PLAYER ===================== -->
+  <section class="view" id="v-player" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Player details</div>
+      <button class="ib" id="playerRate" aria-label="Rate this player">
+        <svg viewBox="0 0 24 24"><path d="m12 3.6 2.5 5.4 5.9.7-4.4 4 1.2 5.8L12 16.6 6.8 19.5 8 13.7l-4.4-4 5.9-.7z"/></svg></button>
+    </div>
+    <div class="pad" id="playerBody"></div>
+  </section>
+
+  <!-- ===================== RECORD ===================== -->
+  <section class="view" id="v-record" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Record a result</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <div class="card" id="sideA">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
+          <span class="tag">Pair A</span><span class="note" id="ratingA"></span>
+        </div>
+        <div class="gap">
+          <select data-slot="a0"></select>
+          <select data-slot="a1"></select>
+        </div>
+        <div style="margin-top:12px"><label class="f" for="scoreA">Points scored</label>
+          <input type="number" id="scoreA" min="0" step="1" inputmode="numeric"></div>
+      </div>
+
+      <div style="text-align:center;padding:10px 0;font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--dim2)">VERSUS</div>
+
+      <div class="card" id="sideB">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
+          <span class="tag">Pair B</span><span class="note" id="ratingB"></span>
+        </div>
+        <div class="gap">
+          <select data-slot="b0"></select>
+          <select data-slot="b1"></select>
+        </div>
+        <div style="margin-top:12px"><label class="f" for="scoreB">Points scored</label>
+          <input type="number" id="scoreB" min="0" step="1" inputmode="numeric"></div>
+      </div>
+
+      <div class="card" style="margin-top:12px" id="predict"></div>
+
+      <div class="two" style="margin-top:12px">
+        <div><label class="f" for="matchDate">Played on</label><input type="date" id="matchDate"></div>
+        <div><label class="f" for="matchSlot">When</label><select id="matchSlot"></select></div>
+      </div>
+      <div style="margin-top:12px"><label class="f" for="matchRef">Referee</label><select id="matchRef"></select></div>
+      <label class="ck" style="margin-top:12px"><input type="checkbox" id="matchRated" checked> Counts towards ratings</label>
+
+      <div style="margin-top:14px"><button class="btn" id="saveMatch">Save result</button></div>
+      <div class="brow" style="margin-top:10px">
+        <button class="btn sec sm" id="swapPairs">Swap pairs</button>
+        <button class="btn sec sm" id="fillRandom">Draw at random</button>
+        <button class="btn sec sm" id="clearMatch">Clear</button>
+      </div>
+
+      <div class="sh"><h2>Match log</h2><span class="note" id="logNote"></span></div>
+      <div class="rows" id="logTbl"></div>
+      <div style="height:20px"></div>
+    </div>
+  </section>
+
+  <!-- ===================== MEET ===================== -->
+  <section class="view" id="v-meet" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Meet builder</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <p class="lede" style="margin-top:0">A meet is one afternoon of deskball. Tick who turned up, say how many desks you have, and it writes the whole rotation &mdash; partners, opponents and fair sit-outs.</p>
+
+      <div class="sh"><h2>Who is here</h2><span class="note" id="meetCount"></span></div>
+      <div class="picks" id="meetPicks"></div>
+      <div class="brow" style="margin-top:11px">
+        <button class="btn sec xs" data-pickall="1">Select all</button>
+        <button class="btn sec xs" data-pickall="0">Select none</button>
+      </div>
+
+      <div class="sh"><h2>Format</h2></div>
+      <select id="meetFormat">
+        <option value="americano">Americano &mdash; partners rotate every round</option>
+        <option value="mexicano">Mexicano &mdash; pairs set by live standings</option>
+            <option value="kings">King’s Court &mdash; win and move up a desk</option>
+        <option value="fixed">Fixed pairs &mdash; balanced, round robin</option>
+        <option value="complement">Complementary pairs &mdash; cover each other's weak skills</option>
+        <option value="random">Random pairs &mdash; fresh draw each round</option>
+      </select>
+      <div style="margin-top:11px"><label class="f" for="meetSlot">When and where</label>
+        <select id="meetSlot"></select></div>
+      <div style="margin-top:11px"><label class="f" for="meetRef">Referee</label><select id="meetRef"></select></div>
+      <div class="three" style="margin-top:11px">
+        <div><label class="f" for="meetDesks">Desks</label><input type="number" id="meetDesks" value="2" min="1" max="12" inputmode="numeric"></div>
+        <div><label class="f" for="meetRounds">Rounds</label><input type="number" id="meetRounds" value="6" min="1" max="24" inputmode="numeric"></div>
+        <div><label class="f" for="meetTarget">Play to</label><input type="number" id="meetTarget" value="11" min="1" inputmode="numeric"></div>
+      </div>
+      <label class="ck" style="margin-top:12px"><input type="checkbox" id="meetRated" checked> These results count towards ratings</label>
+      <p class="note" id="meetHint" style="margin-top:10px"></p>
+      <div style="margin-top:12px"><button class="btn" id="buildMeet">Draw the meet</button></div>
+      <div class="brow" style="margin-top:9px">
+        <button class="btn sec sm" id="clearMeet">Discard meet</button>
+        <button class="btn sec sm" id="printMeet">Copy court sheet</button>
+      </div>
+
+      <div id="meetOut" style="margin-top:8px"></div>
+      <div style="height:20px"></div>
+    </div>
+  </section>
+
+  <!-- ===================== SKILLS ===================== -->
+  <section class="view" id="v-skills" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Skill profiles</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <p class="lede" style="margin-top:0">DBR is earned &mdash; it moves only on results. A skill profile is the other half: what someone is actually good at. The club admin files the cards; everyone else can read every profile.</p>
+      <div class="sh"><h2>Category leaders</h2><span class="note" id="rateNote"></span></div>
+      <div id="skillLeaders"></div>
+
+      <div class="sh"><h2>Rate a player</h2></div>
+      <div id="rateGate" style="margin-bottom:12px"></div>
+      <div class="card" id="rateForm">
+        <div class="two" style="margin-bottom:13px">
+          <div><label class="f" for="rateWho">Player</label><select id="rateWho"></select></div>
+          <div id="rateByWrap"><label class="f" for="rateBy">Rated by</label><input type="text" id="rateBy" placeholder="Your name"></div>
+        </div>
+        <div id="rateSliders"></div>
+        <div style="margin-top:10px"><label class="f" for="rateNoteTxt">Note (optional)</label>
+          <input type="text" id="rateNoteTxt" placeholder="e.g. much better off the back desk"></div>
+        <div style="margin-top:13px"><button class="btn" id="saveRating">Save this card</button></div>
+        <div style="margin-top:9px"><button class="btn sec sm" id="loadRating">Load my last card</button></div>
+      </div>
+
+      <div class="sh"><h2>Preview</h2></div>
+      <div class="card" id="ratePreview"></div>
+
+      <div class="sh"><h2>The squad</h2></div>
+      <select id="skillSort"></select>
+      <div class="rows" id="skillTbl" style="margin-top:11px"></div>
+
+      <div class="sh"><h2>Rating cards</h2><span class="note" id="cardNote"></span></div>
+      <div class="rows" id="cardTbl"></div>
+      <div style="height:20px"></div>
+    </div>
+  </section>
+
+  <!-- ===================== CUP ===================== -->
+  <section class="view" id="v-cup" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Cup draw</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <p class="lede" style="margin-top:0">Build a bracket from fixed pairs. Seeding uses combined DBR, so the two strongest pairs can only meet in the final and byes fall to the top seeds.</p>
+
+      <div class="sh"><h2>Entrants</h2><span class="note" id="cupCount"></span></div>
+      <div class="picks" id="cupPicks"></div>
+      <div class="brow" style="margin-top:11px">
+        <button class="btn sec xs" data-cupall="1">Select all</button>
+        <button class="btn sec xs" data-cupall="0">Select none</button>
+      </div>
+
+      <div class="sh"><h2>Setup</h2></div>
+      <div class="gap">
+        <div><label class="f" for="cupName">Cup name</label><input type="text" id="cupName" placeholder="e.g. Autumn Shield"></div>
+        <div><label class="f" for="cupFormat">Format</label>
+          <select id="cupFormat">
+            <option value="knockout">Single elimination</option>
+            <option value="rr">Round robin &mdash; every pair plays every pair</option>
+          </select></div>
+        <div><label class="f" for="cupPairing">Pair the entrants</label>
+          <select id="cupPairing">
+            <option value="balanced">Balanced &mdash; strongest with weakest</option>
+            <option value="random">Random draw</option>
+            <option value="fresh">Fresh partners &mdash; least-played combinations</option>
+            <option value="complement">Complementary &mdash; cover each other's weak skills</option>
+          </select></div>
+      </div>
+      <div style="margin-top:13px"><button class="btn" id="buildCup">Make the draw</button></div>
+      <div class="brow" style="margin-top:9px">
+        <button class="btn sec sm" id="clearCup">Discard cup</button>
+        <button class="btn sec sm" id="cupCopy">Copy draw</button>
+      </div>
+      <span class="note" id="cupHint"></span>
+      <div id="cupOut" style="margin-top:8px"></div>
+      <div style="height:20px"></div>
+    </div>
+  </section>
+
+  <!-- ===================== LEAGUE ===================== -->
+  <section class="view" id="v-league" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt" id="leagueTitle">Season standings</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <select id="seasonPick"></select>
+      <p class="lede">The ladder ranks pure skill; the league rewards turning up. Every player banks league points for each match they play in the season.</p>
+      <div class="note" id="leagueNote" style="margin-bottom:11px"></div>
+      <div class="rows" id="standTbl"></div>
+
+      <div class="sh"><h2>Points awarded</h2></div>
+      <div class="three">
+        <div><label class="f" for="ptsWin">Win</label><input type="number" id="ptsWin" min="0" inputmode="numeric"></div>
+        <div><label class="f" for="ptsLoss">Loss</label><input type="number" id="ptsLoss" min="0" inputmode="numeric"></div>
+        <div><label class="f" for="ptsBonus">Close loss</label><input type="number" id="ptsBonus" min="0" inputmode="numeric"></div>
+      </div>
+      <p class="note" style="margin-top:9px">A bonus for losing by two or less keeps mismatched fixtures worth playing out.</p>
+
+      <div class="sh"><h2>New season</h2></div>
+      <div class="gap">
+        <div><label class="f" for="newSeasonName">Name</label><input type="text" id="newSeasonName" placeholder="e.g. Spring 2027"></div>
+        <div id="regressWrap"><label class="f" for="regress">Rating carried over &mdash; <b id="regressEcho" style="color:var(--vio2)">75%</b></label>
+          <input type="range" id="regress" min="0" max="100" step="5" value="75"></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn" id="newSeason">Start new season</button></div>
+      <p class="note" style="margin-top:10px" id="seasonNote"></p>
+      <div style="height:20px"></div>
+    </div>
+  </section>
+
+  <!-- ===================== SETUP ===================== -->
+  <section class="view" id="v-setup" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Setup</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <div class="sh" style="margin-top:6px"><h2>Admin account</h2></div>
+      <div id="adminPanel"></div>
+
+      <div class="sh"><h2>Roster</h2><span class="note" id="rosterNote"></span></div>
+      <div><label class="f" for="newPlayer">Add a player</label>
+        <div style="display:flex;gap:9px">
+          <input type="text" id="newPlayer" placeholder="Full name">
+          <button class="btn sm" id="addPlayer" style="flex:0 0 auto">Add</button>
+        </div></div>
+      <div class="rows" id="rosterTbl" style="margin-top:12px"></div>
+
+      <div class="sh"><h2>Rating rules</h2></div>
+      <div class="card gap">
+        <div class="two">
+          <div><label class="f" for="setBase">Starting rating</label><input type="number" id="setBase" step="10" inputmode="numeric"></div>
+          <div><label class="f" for="setProv">Provisional until</label><input type="number" id="setProv" min="0" inputmode="numeric"></div>
+        </div>
+        <div><label class="f" for="setK">Volatility (K) &mdash; <b id="kEcho" style="color:var(--vio2)"></b></label>
+          <input type="range" id="setK" min="12" max="56" step="2">
+          <p class="note">New players move at 1.6&times; this until they clear the provisional mark. Higher K means the ladder reacts faster and jumps around more.</p></div>
+        <div><label class="f" for="setCarry">Underdog credit &mdash; <b id="carryEcho" style="color:var(--vio2)"></b></label>
+          <input type="range" id="setCarry" min="0" max="70" step="5">
+          <p class="note">At zero both partners take an identical swing. Turn it up and the lower-rated partner banks more of a win while the favourite carries more of a loss &mdash; which is what stops a strong player farming rating off a weak one.</p></div>
+        <label class="ck"><input type="checkbox" id="setMov"> Scale the swing by winning margin</label>
+        <p class="note" style="margin-top:-4px">11&ndash;2 says more than 11&ndash;9, and it is damped so a heavy favourite gains little from a thrashing. The margin is read as a <b>share of the winning score</b>, so 11&ndash;4 and 7&ndash;2 count the same &mdash; you can mix full and short games in one league without skewing anyone's rating.</p>
+      </div>
+
+      <div class="sh"><h2>Match defaults</h2></div>
+      <div class="card gap">
+        <div><label class="f" for="setTarget">Points to win a match</label><input type="number" id="setTarget" min="1" inputmode="numeric"></div>
+        <div><label class="f" for="setSwing">Most anyone can move in one match &mdash; <b id="swingEcho" style="color:var(--vio2)"></b></label>
+          <input type="range" id="setSwing" min="0" max="140" step="5">
+          <p class="note">At zero there is no ceiling: a brand-new player who beats a far stronger pair 11&ndash;0 can jump well over a hundred points in one game. Set a number here if that ever feels too wild.</p></div>
+        <label class="ck"><input type="checkbox" id="setTies"> Allow drawn matches</label>
+        <div><label class="f" for="setSkillMax">Rate each skill out of</label><input type="number" id="setSkillMax" min="3" max="20" inputmode="numeric"></div>
+        <label class="ck"><input type="checkbox" id="setSeed"> Start every season from the skill profile</label>
+        <div><label class="f" for="setSeedMult">Starting DBR = skill index &times; <b id="seedEcho" style="color:var(--vio2)"></b></label>
+          <input type="range" id="setSeedMult" min="20" max="200" step="10">
+          <p class="note" id="seedExample"></p></div>
+        <p class="note" style="margin-top:-4px">Cards already filed keep the numbers they were given &mdash; changing the scale does not rescale them, so change it before you start rating, not halfway through.</p>
+      </div>
+
+      <div class="sh"><h2>The tour</h2></div>
+      <button class="btn sec" id="showTour">Show the introduction again</button>
+
+      <div class="sh"><h2>Appearance</h2></div>
+      <div class="segs" id="themeSeg">
+        <button data-theme="light" aria-pressed="true">Light</button>
+        <button data-theme="dark" aria-pressed="false">Dark</button>
+      </div>
+      <p class="note" style="margin-top:9px">Light is how the app opens for everyone, whatever their phone is set to. Dark is here if you want it on this device.</p>
+
+      <div class="sh"><h2>Data</h2></div>
+      <div class="card">
+        <p class="note" style="margin-bottom:12px">Everything lives in this browser. Export a copy to move the league to another phone, or to hand it to whoever runs the club next.</p>
+        <div class="brow">
+          <button class="btn sec sm" id="exportBtn">Export league</button>
+          <button class="btn sec sm" id="importBtn">Import</button>
+          <button class="btn warn sm" id="resetBtn">Erase everything</button>
+        </div>
+        <div id="importArea" hidden style="margin-top:12px">
+          <label class="f" for="importText">Paste a league file</label>
+          <textarea id="importText" placeholder='{ "players": [ … ] }'></textarea>
+          <div class="brow" style="margin-top:9px">
+            <button class="btn sm" id="importGo">Load it</button>
+            <button class="btn sec sm" id="importCancel">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sh"><h2>How the two ratings differ</h2></div>
+      <div class="card">
+        <p class="note" style="line-height:1.55"><b style="color:var(--vio2)">DBR</b> is earned. It moves only when you win or lose, it cannot be talked up, and it is the ladder.
+        The <b style="color:var(--vio2)">skill index</b> is judged &mdash; spiking, serving, setting, receiving and placement, each out of eleven, filed by the club admin alone.
+        They disagree on purpose: a player with a big spike and no receive sits high on skill and low on the ladder, and that gap is the useful bit &mdash; it tells you what to work on.</p>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+  </section>
+
+  <!-- ===================== MORE ===================== -->
+  <section class="view" id="v-more" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Everything else</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <div class="tiles t2" style="margin-bottom:14px">
+        <div class="tile"><div class="k">Players</div><div class="v" id="chipCount">0</div></div>
+        <div class="tile"><div class="k">Season</div><div class="v" style="font-size:15px" id="chipSeason">&mdash;</div></div>
+      </div>
+      <div class="rows" id="moreMenu"></div>
+      <div class="foot">Deskball Federation</div>
+    </div>
+  </section>
+
+  <!-- ===================== ACCOUNT ===================== -->
+  <section class="view" id="v-account" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Your account</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad" id="accountBody"></div>
+  </section>
+
+  <!-- ===================== APPROVALS ===================== -->
+  <section class="view" id="v-approve" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Requests</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad" id="approveBody"></div>
+  </section>
+
+  <!-- ===================== TAB BAR ===================== -->
+  <nav class="tabbar" id="tabs" role="tablist">
+    <button class="tb" role="tab" data-tab="home" aria-selected="true">
+      <svg viewBox="0 0 24 24"><path d="M3 10.6 12 3.4l9 7.2V20a1 1 0 0 1-1 1h-4.5v-6.4h-7V21H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+    <button class="tb" role="tab" data-tab="ladder" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M5 21V11M12 21V4M19 21v-7"/></svg>Ladder</button>
+    <button class="tb fab" role="tab" data-tab="record" aria-selected="false" aria-label="Record a result">
+      <span class="ring"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button>
+    <button class="tb" role="tab" data-tab="meet" aria-selected="false">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3.5"/><path d="M8 3v4M16 3v4M3 10.5h18"/></svg>Meet</button>
+    <button class="tb" role="tab" data-tab="more" aria-selected="false">
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2.2"/></svg>More</button>
+  </nav>
+</div>
+
+<div class="intro" id="intro" hidden>
+  <div class="introin">
+    <button class="introskip" id="introSkip">Skip</button>
+    <div id="introSlides"></div>
+    <div class="introfoot">
+      <div class="dots" id="introDots"></div>
+      <div class="introbtns">
+        <button class="btn sec sm" id="introBack">Back</button>
+        <button class="btn sm" id="introNext">Next</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+(function(){
+"use strict";
+const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,10);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const KEY='deskball.league.v1';
+
+/* ---------------------------------------------------------------- state */
+const DEFAULTS={
+  base:1000, prov:6, k:32, carry:35, mov:true, target:11, ties:false,
+  ptsWin:3, ptsLoss:1, ptsBonus:1, skillMax:10, maxSwing:0,
+  seedFromSkill:true, seedMult:100
+};
+const REF=21; // the margin curve's reference game length; margins are scaled to it
+const SKILLS=[
+  {k:'spike',   short:'Spike',    label:'Spiking',   blurb:'Putting the ball away when the chance is there'},
+  {k:'serve',   short:'Serve',    label:'Serving',   blurb:'Starting the rally on your own terms'},
+  {k:'set',     short:'Set',      label:'Setting',   blurb:'Feeding your partner a ball they can hit'},
+  {k:'receive', short:'Receive',  label:'Receiving', blurb:'Digging out the serve and keeping the rally alive'},
+  {k:'place',   short:'Placement',label:'Placement', blurb:'Finding the gap instead of the person'}
+];
+let S=null, activeTab='ladder', ladderScope='all', drawerPlayer=null;
+let meet=null, cup=null;
+
+function blank(){
+  const sid=uid();
+  return {v:1, demo:false, settings:{...DEFAULTS},
+    seasons:[{id:sid,name:'Season 1',started:Date.now()}], season:sid,
+    players:[], matches:[], ratings:[], accounts:[], requests:[]};
+}
+const SLOTS=[['snack','Snack break'],['lunch','Lunch break'],['after','After school'],['other','Somewhere else']];
+const slotName=k=>(SLOTS.find(s=>s[0]===k)||[,'Meet'])[1];
+
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){
+      const d=JSON.parse(raw);
+      if(d&&Array.isArray(d.players)&&Array.isArray(d.matches)){
+        d.settings={...DEFAULTS,...(d.settings||{})};
+        if(!Array.isArray(d.ratings))d.ratings=[];
+        if(!Array.isArray(d.accounts))d.accounts=[];
+        if(!Array.isArray(d.requests))d.requests=[];
+        delete d.admin;
+        if(!d.seasons||!d.seasons.length){const sid=uid();d.seasons=[{id:sid,name:'Season 1',started:Date.now()}];d.season=sid;}
+        if(!d.season)d.season=d.seasons[d.seasons.length-1].id;
+        return d;
+      }
+    }
+  }catch(e){}
+  return demoLeague();
+}
+function save(){
+  if(cloudOn()){cloudPush();return;}
+  try{localStorage.setItem(KEY,JSON.stringify(S));}
+  catch(e){toast('Could not save — this browser is blocking storage.');}
+}
+
+/* ------------------------------------------------------- sample league */
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function demoLeague(){
+  const d=blank(); d.demo=true;
+  const roster=[['Ravi Anand',1180],['Mei Okonkwo',1145],['Tomás Ferreira',1095],['Aisha Rahman',1090],
+    ['Jonas Weber',1030],['Priya Nair',1015],['Nkechi Obi',965],['Sam Lindqvist',920]];
+  const skill={};
+  roster.forEach(([n,s])=>{const p={id:uid(),name:n,active:true,joined:Date.now()};d.players.push(p);skill[p.id]=s;});
+  const rnd=mulberry(20260907);
+  const ids=d.players.map(p=>p.id);
+  const day=86400000; let t=Date.now()-day*38;
+  for(let m=0;m<38;m++){
+    if(m%3===0)t+=day*(1+Math.floor(rnd()*3));
+    const pool=ids.slice();
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    const a=[pool[0],pool[1]], b=[pool[2],pool[3]];
+    const sa=(skill[a[0]]+skill[a[1]])/2, sb=(skill[b[0]]+skill[b[1]])/2;
+    const aWins=rnd()<1/(1+Math.pow(10,(sb-sa)/260));
+    const gap=Math.abs(sa-sb);
+    const to=rnd()<0.25?7:11;                       // some meets run short games
+    const spread=clamp(Math.round(1+gap/45+rnd()*(to*0.55)),1,to);
+    d.matches.push({id:uid(),ts:t+Math.floor(rnd()*day*0.4),season:d.season,tag:'meet',
+      slot:SLOTS[Math.floor(rnd()*SLOTS.length)][0], rated:true,
+      a,b,sa:aWins?to:to-spread,sb:aWins?to-spread:to});
+  }
+  d.matches.sort((x,y)=>x.ts-y.ts);
+  // two rounds of admin cards per player, so a trend exists
+  const MX=d.settings.skillMax;
+  d.players.forEach(p=>{
+    const base=4+(skill[p.id]-920)/260*(MX-4.5);
+    const tilt={};SKILLS.forEach(s=>tilt[s.k]=(rnd()*4-2));
+    [[-0.5,26],[0,4]].forEach(([bias,daysAgo])=>{
+      const card={id:uid(),player:p.id,rater:'Club admin',ts:Date.now()-86400000*daysAgo,note:''};
+      SKILLS.forEach(s=>card[s.k]=clamp(Math.round(base+tilt[s.k]+bias+(rnd()-0.5)*1.4),1,MX));
+      d.ratings.push(card);
+    });
+  });
+  // one of each kind of thing waiting for the admin, so the screen isn't blank
+  const nk=d.players[6];
+  d.accounts.push({id:uid(),name:nk.name,playerId:nk.id,pinHash:hashPin('1234'),status:'active',created:Date.now()-day*20});
+  d.accounts.push({id:uid(),name:'Yusuf Karim',playerId:null,pinHash:hashPin('4321'),status:'pending',created:Date.now()-day*1});
+  d.requests.push({id:uid(),type:'skill',accountId:d.accounts[0].id,playerId:nk.id,name:nk.name,
+    values:Object.fromEntries(SKILLS.map(s=>[s.k,clamp(Math.round(4+(skill[nk.id]-920)/260*(MX-4.5))+1,1,MX)])),
+    note:'my serve has come on a lot this term',ts:Date.now()-day*0.5,status:'pending'});
+  return d;
+}
+
+/* ======================================================= cloud (Supabase)
+   Fill these two in and the app switches from "this browser only" to one
+   shared, live league. Leave them empty and everything below is inert —
+   the app runs exactly as before, saving to local storage.
+   The anon key is meant to be public; what protects the data is the
+   row-level security in schema.sql, enforced by the server, not here. */
+const CLOUD={ url:'', anon:'' };
+
+let sb=null, cloudUser=null, cloudAdmin=false, cloudRequests=[], pushTimer=null, lastPush=0, cloudErr='';
+const cloudOn =()=>!!(CLOUD.url&&CLOUD.anon&&sb);
+const cloudWanted=()=>!!(CLOUD.url&&CLOUD.anon);
+const myUid   =()=>cloudUser?cloudUser.id:null;
+const myPlayerId=()=>{
+  if(!cloudOn()||!cloudUser)return null;
+  return (S.links&&S.links[cloudUser.id])||null;
+};
+const myName=()=>cloudUser?((cloudUser.user_metadata&&cloudUser.user_metadata.name)||cloudUser.email):'';
+
+async function cloudBoot(){
+  if(!cloudWanted())return;
+  if(!window.supabase){cloudErr='The Supabase library did not load.';renderAll();return;}
+  try{
+    sb=window.supabase.createClient(CLOUD.url,CLOUD.anon);
+    const {data}=await sb.auth.getSession();
+    cloudUser=data&&data.session?data.session.user:null;
+    sb.auth.onAuthStateChange(async(_e,s)=>{
+      cloudUser=s?s.user:null;
+      await cloudAfterAuth();
+    });
+    await cloudAfterAuth();
+    cloudSubscribe();
+  }catch(err){ cloudErr=String(err&&err.message||err); renderAll(); }
+}
+async function cloudAfterAuth(){
+  cloudAdmin=false;
+  if(cloudUser){
+    try{
+      const {data}=await sb.from('admins').select('user_id').eq('user_id',cloudUser.id).maybeSingle();
+      cloudAdmin=!!data;
+    }catch(e){}
+    await cloudPull();
+    await ensureJoinRequest();
+  }
+  refreshStats();renderAll();
+}
+async function cloudPull(){
+  if(!sb||!cloudUser)return;
+  try{
+    const {data,error}=await sb.from('league').select('data').eq('id',1).maybeSingle();
+    if(error)throw error;
+    if(data&&data.data&&Array.isArray(data.data.players)){
+      const d=data.data;
+      d.settings={...DEFAULTS,...(d.settings||{})};
+      ['ratings','accounts','requests','players','matches'].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[];});
+      if(!d.links)d.links={};
+      if(!d.seasons||!d.seasons.length){const sid=uid();d.seasons=[{id:sid,name:'Season 1',started:Date.now()}];d.season=sid;}
+      S=d;
+    }
+    const {data:rq}=await sb.from('requests').select('*').order('created_at',{ascending:false});
+    cloudRequests=rq||[];
+    cloudErr='';
+  }catch(err){ cloudErr=String(err&&err.message||err); }
+}
+/* Only an admin may write the league. Debounced so a burst of edits is one write. */
+function cloudPush(){
+  if(!cloudOn()||!cloudAdmin)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(async()=>{
+    pushTimer=null; lastPush=Date.now();
+    try{
+      const {error}=await sb.from('league')
+        .upsert({id:1,data:S,updated_at:new Date().toISOString()},{onConflict:'id'});
+      if(error)throw error;
+      cloudErr='';
+    }catch(err){ cloudErr=String(err&&err.message||err); toast('Could not save: '+cloudErr); }
+  },700);
+}
+function cloudSubscribe(){
+  if(!sb)return;
+  sb.channel('deskball-live')
+    .on('postgres_changes',{event:'*',schema:'public',table:'league'},async()=>{
+      if(Date.now()-lastPush<1500)return;           // our own write coming back
+      await cloudPull(); refreshStats(); renderAll();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'requests'},async()=>{
+      await cloudPull(); renderAll();
+    })
+    .subscribe();
+}
+/* A newly signed-up person who is not on the roster yet queues themselves once. */
+async function ensureJoinRequest(){
+  if(!cloudOn()||!cloudUser||cloudAdmin)return;
+  if(myPlayerId())return;
+  if(cloudRequests.some(r=>r.user_id===cloudUser.id&&r.kind==='join'&&r.status==='pending'))return;
+  try{ await sb.from('requests').insert({kind:'join',status:'pending',payload:{name:myName()}}); }
+  catch(e){}
+}
+async function cloudSubmitSkill(values,note){
+  const {error}=await sb.from('requests').insert({
+    kind:'skill',status:'pending',
+    payload:{name:myName(),playerId:myPlayerId(),values,note}
+  });
+  if(error){toast('Could not send: '+error.message);return false;}
+  await cloudPull(); renderAll(); return true;
+}
+async function cloudSetRequest(id,status){
+  try{ await sb.from('requests').update({status}).eq('id',id); await cloudPull(); }
+  catch(err){ toast('Could not update: '+err.message); }
+}
+
+/* ---------------------------------------------------- cloud sign-in UI */
+function renderCloudLogin(host){
+  if(cloudErr){
+    host.innerHTML=`<div class="card"><div style="font-weight:800">Cannot reach the league</div>
+      <p class="note" style="margin-top:8px">${esc(cloudErr)}</p>
+      <p class="note" style="margin-top:8px">Check the project URL and key at the top of index.html, and that schema.sql has been run.</p></div>`;
+    return;
+  }
+  host.innerHTML=`
+    <div class="segs" id="loginMode">
+      <button data-mode="player" aria-pressed="true">Sign in</button>
+      <button data-mode="new" aria-pressed="false">Register</button>
+    </div>
+    <div id="loginBody" style="margin-top:14px"></div>`;
+  renderCloudLoginBody(loginMode==='new'?'new':'player');
+  $$('#loginMode button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===(loginMode==='new'?'new':'player'))));
+}
+function renderCloudLoginBody(mode){
+  const host=$('#loginBody');
+  if(mode==='new'){
+    host.innerHTML=`<div class="card gap">
+      <div><label class="f" for="cName">Your name</label><input type="text" id="cName" placeholder="Full name"></div>
+      <div><label class="f" for="cEmail">Email</label><input type="text" id="cEmail" inputmode="email" placeholder="you@example.com"></div>
+      <div><label class="f" for="cPass">Password</label><input type="password" id="cPass" placeholder="at least 6 characters"></div>
+      <button class="btn" id="cSignUp">Create my account</button>
+      <p class="note">Your password is hashed by the server and never stored in this page. The admin adds you to the roster once you have signed up.</p>
+    </div>`;
+  }else{
+    host.innerHTML=`<div class="card gap">
+      <div><label class="f" for="cEmail2">Email</label><input type="text" id="cEmail2" inputmode="email" placeholder="you@example.com"></div>
+      <div><label class="f" for="cPass2">Password</label><input type="password" id="cPass2"></div>
+      <button class="btn" id="cSignIn">Sign in</button>
+    </div>`;
+  }
+}
+function renderCloudAccount(host){
+  const MX=S.settings.skillMax, pid=myPlayerId();
+  const pr=pid?skillProfile(pid):null;
+  const mine=cloudRequests.filter(r=>r.user_id===myUid()).slice(0,6);
+  host.innerHTML=`
+    <div class="phero"><div class="in">
+      ${avatarName(myName())}
+      <div style="min-width:0"><h2 style="font-size:22px">${esc(myName())}</h2>
+        <div class="team">${cloudAdmin?'club admin':pr?`skill index ${pr.index.toFixed(1)} / ${MX}`:pid?'not rated yet':'waiting to be added to the roster'}</div></div>
+    </div></div>
+    ${cloudAdmin?`
+      <div class="sh"><h2>Waiting for you</h2></div>
+      <button class="r" data-go="approve">
+        <span class="av" style="background:${cloudPending()?'var(--grad)':'var(--card3)'}">${cloudPending()}</span>
+        <span class="rm"><span class="rn">${cloudPending()?`${cloudPending()} to review`:'Nothing pending'}</span>
+          <span class="rs">new players and skill requests</span></span></button>`
+    :pid?`
+      <div class="sh"><h2>Request a skill update</h2></div>
+      <p class="note" style="margin:-6px 0 12px">Set where you think you are now. The admin approves it or turns it down.</p>
+      <div class="card">
+        <div id="reqSliders"></div>
+        <div style="margin-top:10px"><label class="f" for="reqNote">Why? (optional)</label>
+          <input type="text" id="reqNote" placeholder="e.g. my serve has come on a lot"></div>
+        <div style="margin-top:13px"><button class="btn" id="cSendReq">Send it to the admin</button></div>
+      </div>`
+    :`<div class="card" style="margin-top:14px"><div class="empty">You are signed in, but the admin has not added you to the roster yet.<br>They will see your name in their requests.</div></div>`}
+
+    <div class="sh"><h2>Your requests</h2></div>
+    <div class="rows">${mine.length?mine.map(r=>{
+      const cls=r.status==='approved'?'up':r.status==='declined'?'down':'flat';
+      const label=r.kind==='join'?'Asked to join':`Asked for ${(SKILLS.reduce((a,s)=>a+(+((r.payload.values||{})[s.k])||0),0)/SKILLS.length).toFixed(1)} / ${MX}`;
+      return `<div class="r static"><span class="rm"><span class="rn" style="font-size:13.5px">${label}</span>
+        <span class="rs">${fmtDate(new Date(r.created_at).getTime())}${r.payload&&r.payload.note?' &middot; '+esc(r.payload.note):''}</span></span>
+        <span class="rv"><span class="dchip ${cls}">${r.status}</span></span></div>`;}).join('')
+      :'<div class="card"><div class="empty">Nothing yet.</div></div>'}</div>
+    <div style="margin-top:14px"><button class="btn sec" id="cSignOut">Sign out</button></div>
+    <div style="height:20px"></div>`;
+  if(pid&&!cloudAdmin&&$('#reqSliders')){
+    $('#reqSliders').innerHTML=SKILLS.map(s=>{
+      const v=pr?Math.round(pr.avg[s.k]):Math.round((MX+1)/2);
+      return `<div style="margin-bottom:9px">
+        <label class="f" for="rq_${s.k}">${s.label} &mdash; <b id="rc_${s.k}" style="color:var(--vio2)">${v}</b> / ${MX}</label>
+        <input type="range" id="rq_${s.k}" data-rq="${s.k}" min="1" max="${MX}" step="1" value="${v}">
+      </div>`;}).join('');
+  }
+}
+const cloudPending=()=>cloudRequests.filter(r=>r.status==='pending').length;
+
+function renderCloudApprovals(host){
+  const MX=S.settings.skillMax;
+  const joins=cloudRequests.filter(r=>r.status==='pending'&&r.kind==='join');
+  const skills=cloudRequests.filter(r=>r.status==='pending'&&r.kind==='skill');
+  host.innerHTML=`
+    <div class="sh" style="margin-top:4px"><h2>New players</h2><span class="note">${joins.length} waiting</span></div>
+    <div class="rows">${joins.length?joins.map(r=>`
+      <div class="r static">${avatarName(r.payload.name||'?')}
+        <span class="rm"><span class="rn">${esc(r.payload.name||'Someone')}</span>
+          <span class="rs">signed up ${fmtDate(new Date(r.created_at).getTime())}</span></span>
+        <button class="btn xs" data-cjoin="${r.id}" data-uid="${r.user_id}">Add to roster</button>
+        <button class="btn warn xs" data-cno="${r.id}">No</button></div>`).join('')
+      :'<div class="card"><div class="empty">Nobody waiting.</div></div>'}</div>
+
+    <div class="sh"><h2>Skill requests</h2><span class="note">${skills.length} waiting</span></div>
+    <div class="rows">${skills.length?skills.map(r=>{
+      const pid=r.payload.playerId, cur=pid?skillProfile(pid):null;
+      const v=r.payload.values||{};
+      const idx=SKILLS.reduce((a,s)=>a+(+v[s.k]||0),0)/SKILLS.length;
+      return `<div class="card">
+        <div style="display:flex;align-items:center;gap:11px">${avatarName(r.payload.name||'?')}
+          <span class="rm"><span class="rn">${esc(r.payload.name||'Someone')}</span>
+            <span class="rs">${cur?`now ${cur.index.toFixed(1)}`:'not rated yet'} &rarr; ${idx.toFixed(1)} / ${MX}</span></span></div>
+        ${r.payload.note?`<p class="note" style="margin-top:9px">&ldquo;${esc(r.payload.note)}&rdquo;</p>`:''}
+        <div style="margin-top:10px">${SKILLS.map(s=>{
+          const was=cur?cur.avg[s.k]:null, now=+v[s.k]||0, d=was===null?null:now-was;
+          return `<div class="sl"><span class="nm">${s.short}</span>
+            <span class="note" style="text-align:right">${was===null?'&mdash;':was.toFixed(1)} &rarr;</span>
+            <span class="vv">${now}${d===null?'':` <small style="font-size:10px;color:${d>0?'var(--good)':d<0?'var(--bad)':'var(--dim2)'}">${d>0?'+':''}${d.toFixed(1)}</small>`}</span></div>`;
+        }).join('')}</div>
+        <div class="brow" style="margin-top:12px">
+          <button class="btn sm" data-cskill="${r.id}">Approve</button>
+          <button class="btn warn sm" data-cno="${r.id}">Decline</button></div></div>`;}).join('')
+      :'<div class="card"><div class="empty">No skill requests waiting.</div></div>'}</div>
+    <div style="height:20px"></div>`;
+}
+
+/* ==================================================== accounts & access
+   IMPORTANT, and said plainly in the app too: this is a club sign-in, not
+   security. The whole league lives in the visitor's own browser, so the
+   admin password sits in the page source and anyone can read it. It keeps
+   the wrong people from casually changing ratings; it stops nothing else. */
+const ADMIN_USER='DESKBALLADMIN', ADMIN_PASS='itisthatserious';
+let session=null;                       // {kind:'admin'} | {kind:'player',id}
+
+function hashPin(p){
+  let h=2166136261>>>0;
+  for(const c of String(p)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)>>>0;}
+  return h.toString(36);
+}
+const isAdmin =()=>cloudOn()?cloudAdmin:(!!session&&session.kind==='admin');
+const myAccount=()=>{
+  if(cloudOn())return cloudUser?{id:cloudUser.id,name:myName(),playerId:myPlayerId()}:null;
+  return (session&&session.kind==='player')?S.accounts.find(a=>a.id===session.id)||null:null;
+};
+const adminName=()=>'the club admin';
+const activeAccounts=()=>S.accounts.filter(a=>a.status==='active');
+const pendingAccounts=()=>S.accounts.filter(a=>a.status==='pending');
+const pendingReqs=()=>S.requests.filter(r=>r.status==='pending');
+const inbox=()=>cloudOn()?cloudPending():(pendingAccounts().length+pendingReqs().length);
+
+function saveSession(){
+  try{
+    if(!session)localStorage.removeItem('deskball.session');
+    else localStorage.setItem('deskball.session',JSON.stringify(session));
+  }catch(e){}
+}
+function restoreSession(){
+  try{
+    const raw=localStorage.getItem('deskball.session');
+    session=raw?JSON.parse(raw):null;
+  }catch(e){session=null;}
+  if(session&&session.kind==='player'){
+    const a=myAccount();
+    if(!a||a.status!=='active'){session=null;saveSession();}
+  }
+}
+function signOut(){session=null;saveSession();}
+
+/* request codes — the bridge for a club with no server: a player on their
+   own phone produces a code, sends it to the admin however they like, and
+   the admin pastes it in. */
+const b64e=s=>btoa(String.fromCharCode.apply(null,Array.from(new TextEncoder().encode(s))));
+const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s),c=>c.charCodeAt(0)));
+const encodeReq=o=>'DB1-'+b64e(JSON.stringify(o)).replace(/=+$/,'');
+function decodeReq(code){
+  const c=String(code||'').trim().replace(/\s+/g,'');
+  if(!c.startsWith('DB1-'))throw new Error('not a deskball code');
+  let body=c.slice(4);
+  while(body.length%4)body+='=';
+  return JSON.parse(b64d(body));
+}
+
+/* ------------------------------------------------------------- ACCOUNT */
+function renderAccount(){
+  const host=$('#accountBody');
+  const MX=S.settings.skillMax;
+  if(cloudWanted()){
+    if(!cloudUser||cloudErr){renderCloudLogin(host);}
+    else renderCloudAccount(host);
+    return;
+  }
+  if(isAdmin()){
+    const n=inbox();
+    host.innerHTML=`
+      <div class="phero"><div class="in">
+        ${avatarName('Club Admin')}
+        <div><h2 style="font-size:22px">Club admin</h2>
+          <div class="team">signed in on this device</div></div>
+      </div></div>
+      <div class="sh"><h2>Waiting for you</h2></div>
+      <button class="r" data-go="approve">
+        <span class="av" style="background:${n?'var(--grad)':'var(--card3)'}">${n}</span>
+        <span class="rm"><span class="rn">${n?`${n} thing${n===1?'':'s'} to review`:'Nothing pending'}</span>
+          <span class="rs">${pendingAccounts().length} new player${pendingAccounts().length===1?'':'s'} &middot; ${pendingReqs().length} skill request${pendingReqs().length===1?'':'s'}</span></span>
+      </button>
+      <div style="margin-top:14px"><button class="btn sec" id="signOutBtn">Sign out</button></div>
+      <div style="height:20px"></div>`;
+    return;
+  }
+  const me=myAccount();
+  if(me){
+    const pr=me.playerId?skillProfile(me.playerId):null;
+    const mine=S.requests.filter(r=>r.accountId===me.id).sort((a,b)=>b.ts-a.ts).slice(0,6);
+    host.innerHTML=`
+      <div class="phero"><div class="in">
+        ${avatarName(me.name)}
+        <div style="min-width:0"><h2 style="font-size:22px">${esc(me.name)}</h2>
+          <div class="team">${pr?`skill index ${pr.index.toFixed(1)} / ${MX}`:'not rated yet'}</div></div>
+      </div></div>
+
+      <div class="sh"><h2>Request a skill update</h2></div>
+      <p class="note" style="margin:-6px 0 12px">Set where you think you are now. It goes to the admin, who approves it or turns it down &mdash; you can't change your own rating directly.</p>
+      <div class="card">
+        <div id="reqSliders"></div>
+        <div style="margin-top:10px"><label class="f" for="reqNote">Why? (optional)</label>
+          <input type="text" id="reqNote" placeholder="e.g. my serve has come on a lot this term"></div>
+        <div style="margin-top:13px"><button class="btn" id="sendReq">Send it to the admin</button></div>
+        <p class="note" style="margin-top:9px">If the admin uses a different phone, you'll get a code to send them.</p>
+      </div>
+
+      <div class="sh"><h2>Your requests</h2></div>
+      <div class="rows">${mine.length?mine.map(r=>{
+        const idx=SKILLS.reduce((a,s)=>a+(+r.values[s.k]||0),0)/SKILLS.length;
+        const cls=r.status==='approved'?'up':r.status==='declined'?'down':'flat';
+        return `<div class="r static">
+          <span class="rm"><span class="rn" style="font-size:13.5px">Asked for ${idx.toFixed(1)} / ${MX}</span>
+            <span class="rs">${fmtDate(r.ts)}${r.note?' &middot; '+esc(r.note):''}</span></span>
+          <span class="rv"><span class="dchip ${cls}">${r.status}</span></span></div>`;}).join('')
+        :'<div class="card"><div class="empty">You have not asked for anything yet.</div></div>'}</div>
+      <div style="margin-top:14px"><button class="btn sec" id="signOutBtn">Sign out</button></div>
+      <div style="height:20px"></div>`;
+    if($('#reqSliders').dataset.built!==String(MX)){
+      const cur=me.playerId?skillProfile(me.playerId):null;
+      $('#reqSliders').dataset.built=String(MX);
+      $('#reqSliders').innerHTML=SKILLS.map(s=>{
+        const v=cur?Math.round(cur.avg[s.k]):Math.round((MX+1)/2);
+        return `<div style="margin-bottom:9px">
+          <label class="f" for="rq_${s.k}">${s.label} &mdash; <b id="rc_${s.k}" style="color:var(--vio2)">${v}</b> / ${MX}</label>
+          <input type="range" id="rq_${s.k}" data-rq="${s.k}" min="1" max="${MX}" step="1" value="${v}">
+        </div>`;}).join('');
+    }
+    return;
+  }
+  // signed out
+  host.innerHTML=`
+    <p class="lede" style="margin-top:0">Everyone gets their own sign-in so the club knows who is asking for what. The admin approves new players and every skill change.</p>
+    <div class="segs" style="margin-top:14px" id="loginMode">
+      <button data-mode="player" aria-pressed="true">I'm a player</button>
+      <button data-mode="admin" aria-pressed="false">I'm the admin</button>
+      <button data-mode="new" aria-pressed="false">Register</button>
+    </div>
+    <div id="loginBody" style="margin-top:14px"></div>
+    <div style="height:20px"></div>`;
+  renderLoginBody(loginMode);
+  $$('#loginMode button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===loginMode)));
+}
+function renderLoginBody(mode){
+  const host=$('#loginBody');
+  if(mode==='admin'){
+    host.innerHTML=`<div class="card gap">
+      <div><label class="f" for="admUser">Username</label><input type="text" id="admUser" autocapitalize="characters" placeholder="DESKBALLADMIN"></div>
+      <div><label class="f" for="admPass">Password</label><input type="password" id="admPass" placeholder="password"></div>
+      <button class="btn" id="admGo">Sign in as admin</button>
+      <p class="note">A club sign-in, not security &mdash; the league is stored in this browser and the password is readable in the page source. It keeps other people from casually rewriting ratings; it does not protect anything valuable.</p>
+    </div>`;
+    return;
+  }
+  if(mode==='new'){
+    host.innerHTML=`<div class="card gap">
+      <div><label class="f" for="regName">Your name</label><input type="text" id="regName" placeholder="Full name"></div>
+      <div><label class="f" for="regLink">Already on the roster?</label>
+        <select id="regLink"><option value="">No &mdash; add me as a new player</option>${
+          S.players.filter(p=>!S.accounts.some(a=>a.playerId===p.id))
+            .map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></div>
+      <div class="two">
+        <div><label class="f" for="regPin">Choose a PIN</label><input type="password" id="regPin" inputmode="numeric" placeholder="4 digits"></div>
+        <div><label class="f" for="regPin2">Again</label><input type="password" id="regPin2" inputmode="numeric" placeholder="repeat"></div>
+      </div>
+      <button class="btn" id="regGo">Register</button>
+      <p class="note">You can sign in once the admin has approved you. If they use a different phone, you'll get a code to send them.</p>
+    </div>`;
+    return;
+  }
+  const acc=activeAccounts();
+  host.innerHTML=`<div class="card gap">
+    ${acc.length?`<div><label class="f" for="logWho">Who are you?</label>
+      <select id="logWho">${acc.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join('')}</select></div>
+    <div><label class="f" for="logPin">Your PIN</label><input type="password" id="logPin" inputmode="numeric" placeholder="4 digits"></div>
+    <button class="btn" id="logGo">Sign in</button>`
+    :`<div class="empty">No player accounts yet. Tap <b style="color:var(--vio2)">Register</b> to make one.</div>`}
+  </div>`;
+}
+
+/* ----------------------------------------------------------- APPROVALS */
+function renderApprovals(){
+  const host=$('#approveBody');
+  if(cloudWanted()&&isAdmin()){renderCloudApprovals(host);return;}
+  if(!isAdmin()){
+    host.innerHTML=`<div class="card"><div class="empty">Only the admin can review requests.<br>
+      <button class="btn sm" data-go="account" style="margin-top:12px">Sign in</button></div></div>`;
+    return;
+  }
+  const MX=S.settings.skillMax;
+  const joins=pendingAccounts(), reqs=pendingReqs();
+  host.innerHTML=`
+    <div class="sh" style="margin-top:4px"><h2>New players</h2><span class="note">${joins.length} waiting</span></div>
+    <div class="rows">${joins.length?joins.map(a=>`
+      <div class="r static">${avatarName(a.name)}
+        <span class="rm"><span class="rn">${esc(a.name)}</span>
+          <span class="rs">${a.playerId?'links to '+esc(nameOf(a.playerId)):'new to the roster'} &middot; ${fmtDate(a.created)}</span></span>
+        <button class="btn xs" data-approve-acc="${a.id}">Approve</button>
+        <button class="btn warn xs" data-decline-acc="${a.id}">No</button></div>`).join('')
+      :'<div class="card"><div class="empty">Nobody waiting to join.</div></div>'}</div>
+
+    <div class="sh"><h2>Skill requests</h2><span class="note">${reqs.length} waiting</span></div>
+    <div class="rows">${reqs.length?reqs.map(r=>{
+      const cur=r.playerId?skillProfile(r.playerId):null;
+      const idx=SKILLS.reduce((a,s)=>a+(+r.values[s.k]||0),0)/SKILLS.length;
+      return `<div class="card">
+        <div style="display:flex;align-items:center;gap:11px">
+          ${avatarName(r.name)}
+          <span class="rm"><span class="rn">${esc(r.name)}</span>
+            <span class="rs">${cur?`now ${cur.index.toFixed(1)}`:'not rated yet'} &rarr; asking for ${idx.toFixed(1)} / ${MX} &middot; ${fmtDate(r.ts)}</span></span>
+        </div>
+        ${r.note?`<p class="note" style="margin-top:9px">&ldquo;${esc(r.note)}&rdquo;</p>`:''}
+        <div style="margin-top:10px">${SKILLS.map(s=>{
+          const was=cur?cur.avg[s.k]:null, now=+r.values[s.k];
+          const d=was===null?null:now-was;
+          return `<div class="sl"><span class="nm">${s.short}</span>
+            <span class="note" style="text-align:right">${was===null?'&mdash;':was.toFixed(1)} &rarr;</span>
+            <span class="vv">${now}${d===null?'':` <small style="font-size:10px;color:${d>0?'var(--good)':d<0?'var(--bad)':'var(--dim2)'}">${d>0?'+':''}${d.toFixed(1)}</small>`}</span></div>`;
+        }).join('')}</div>
+        <div class="brow" style="margin-top:12px">
+          <button class="btn sm" data-approve-req="${r.id}">Approve as filed</button>
+          <button class="btn warn sm" data-decline-req="${r.id}">Decline</button>
+        </div></div>`;}).join('')
+      :'<div class="card"><div class="empty">No skill requests waiting.</div></div>'}</div>
+
+    <div class="sh"><h2>Paste a request code</h2></div>
+    <div class="card">
+      <p class="note" style="margin-bottom:11px">If someone registered or asked for a change on their own phone, they'll have a code beginning <b style="color:var(--vio2)">DB1-</b>. Paste it here.</p>
+      <textarea id="codeIn" placeholder="DB1-…" style="min-height:74px"></textarea>
+      <div style="margin-top:10px"><button class="btn" id="codeGo">Read the code</button></div>
+    </div>
+    <div style="height:20px"></div>`;
+}
+
+/* -------------------------------------------------------- rating engine */
+function K(games,st){ return games<st.prov ? st.k*1.6 : (games<st.prov*4 ? st.k : st.k*0.78); }
+
+function computeStats(matches,initial){
+  const st=S.settings, R={}, stats={};
+  S.players.forEach(p=>{
+    const start=(initial&&typeof initial[p.id]==='number')?initial[p.id]:st.base;
+    R[p.id]=start;
+    stats[p.id]={id:p.id,name:p.name,active:p.active,rating:start,peak:start,low:start,
+      games:0,w:0,l:0,d:0,pf:0,pa:0,streak:0,form:[],hist:[{t:null,r:start}],last:0,
+      partners:{},opps:{},pts:0,seasonGames:0,seasonW:0,seasonL:0};
+  });
+  const ms=matches.slice().sort((x,y)=>x.ts-y.ts);
+  for(const m of ms){
+    const all=[...m.a,...m.b];
+    if(all.some(id=>!stats[id])) continue;
+    if(m.rated===false) continue;   // unrated: logged and visible, but counts for nothing
+    if(m.rated===false) continue;   // unrated: played and logged, but counts for nothing
+    const ra=(R[m.a[0]]+R[m.a[1]])/2, rb=(R[m.b[0]]+R[m.b[1]])/2;
+    const ea=1/(1+Math.pow(10,(rb-ra)/400));
+    const res = m.sa>m.sb ? 1 : (m.sa<m.sb ? 0 : 0.5);
+    const margin=Math.abs(m.sa-m.sb);
+    let mult=1;
+    if(st.mov && margin>0){
+      const favEdge = res===1 ? (ra-rb) : (rb-ra);
+      // Read the margin as a share of the winning score, then scale it to the
+      // reference game length. That way 11-4 and 7-2 and 21-8 all count alike,
+      // so a league can mix full and short matches without distorting ratings.
+      const rel = margin/Math.max(m.sa,m.sb,1);
+      mult = Math.log(1+REF*rel) * (2.2/(0.001*Math.max(favEdge,0)+2.2)) / Math.log(9);
+      mult = clamp(mult,0.55,1.75);
+    }
+    const gA=(stats[m.a[0]].games+stats[m.a[1]].games)/2, gB=(stats[m.b[0]].games+stats[m.b[1]].games)/2;
+    const kA=K(gA,st), kB=K(gB,st);
+    const dA=kA*mult*(res-ea), dB=kB*mult*((1-res)-(1-ea));
+    const c=st.carry/100;
+    // Freeze the pre-match ratings: both partners' shares must be read from
+    // the same snapshot, or the second one is weighed against a teammate
+    // who has already been updated and the two stop summing to 1.
+    const R0={}; all.forEach(id=>R0[id]=R[id]);
+    const share=(me,mate)=>{
+      const w = 0.5 + c*((R0[mate]-R0[me])/400) * (res===1?1:-1);
+      return clamp(w,0.2,0.8);
+    };
+    const shareB=(me,mate)=>{
+      const w = 0.5 + c*((R0[mate]-R0[me])/400) * (res===0?1:-1);
+      return clamp(w,0.2,0.8);
+    };
+    const apply=(ids,delta,sh,teamScore,oppScore,outcome,mates,foes)=>{
+      ids.forEach((id,i)=>{
+        const mate=ids[1-i];
+        const w = res===0.5 ? 0.5 : sh(id,mate);
+        const before=R[id];
+        // No single match may move anyone more than the cap, however lopsided.
+        const cap=st.maxSwing>0?st.maxSwing:Infinity;
+        R[id]=before+clamp(delta*2*w,-cap,cap);
+        const s=stats[id];
+        s.last=R[id]-before; s.rating=R[id];
+        s.peak=Math.max(s.peak,R[id]); s.low=Math.min(s.low,R[id]);
+        s.games++; s.pf+=teamScore; s.pa+=oppScore;
+        if(outcome===1)s.w++; else if(outcome===0)s.l++; else s.d++;
+        s.form.push(outcome); if(s.form.length>10)s.form.shift();
+        s.streak = outcome===0.5 ? 0 : (Math.sign(s.streak)===(outcome===1?1:-1) ? s.streak+(outcome===1?1:-1) : (outcome===1?1:-1));
+        s.hist.push({t:m.ts,r:R[id]});
+        const pr=s.partners[mate]||(s.partners[mate]={g:0,w:0,d:0});
+        pr.g++; if(outcome===1)pr.w++; pr.d+=(R[id]-before);
+        foes.forEach(f=>{const o=s.opps[f]||(s.opps[f]={g:0,w:0});o.g++;if(outcome===1)o.w++;});
+        if(m.season===S.season){
+          s.seasonGames++;
+          if(outcome===1){s.seasonW++;s.pts+=st.ptsWin;}
+          else if(outcome===0){s.seasonL++;s.pts+=st.ptsLoss+(Math.abs(m.sa-m.sb)<=2?st.ptsBonus:0);}
+          else s.pts+=(st.ptsWin+st.ptsLoss)/2;
+        }
+      });
+    };
+    apply(m.a,dA,share,m.sa,m.sb,res,m.b,m.b);
+    apply(m.b,dB,shareB,m.sb,m.sa,res===0.5?0.5:1-res,m.a,m.a);
+  }
+  return stats;
+}
+
+// A season opens with everyone's DBR set from their skill profile:
+// index (out of 10) x seedMult. Nobody rated yet sits at the middle of the
+// scale, so an unrated player starts mid-pack instead of on top.
+function seedRating(pid){
+  const st=S.settings;
+  if(!st.seedFromSkill)return st.base;
+  const pr=skillProfile(pid);
+  const idx=pr?pr.index:st.skillMax/2;
+  return Math.round(idx*st.seedMult);
+}
+function seedMap(){
+  if(!S.settings.seedFromSkill)return null;
+  const m={};S.players.forEach(p=>m[p.id]=seedRating(p.id));return m;
+}
+let STATS=null;
+function refreshStats(){
+  if(ladderScope==='season'){
+    const sn=S.seasons.find(s=>s.id===S.season);
+    STATS=computeStats(S.matches.filter(m=>m.season===S.season),(sn&&sn.seed)||seedMap());
+  }else{
+    STATS=computeStats(S.matches,seedMap());
+  }
+}
+
+const byId=id=>S.players.find(p=>p.id===id);
+const nameOf=id=>{const p=byId(id);return p?p.name:'—';};
+const shortName=id=>{const n=nameOf(id);const parts=n.split(' ');return parts.length>1?parts[0]+' '+parts[parts.length-1][0]+'.':n;};
+const pairName=ids=>ids.map(shortName).join(' + ');
+
+function ranked(){
+  return Object.values(STATS).sort((a,b)=> b.rating-a.rating || b.games-a.games || a.name.localeCompare(b.name));
+}
+
+/* ---------------------------------------------------------------- utils */
+function toast(msg){const t=$('#toast');t.textContent=msg;t.dataset.on='1';clearTimeout(t._t);t._t=setTimeout(()=>t.dataset.on='0',2400);}
+const fmtDate=ts=>new Date(ts).toLocaleDateString(undefined,{day:'numeric',month:'short'});
+const sgn=v=>(v>0?'+':'')+v.toFixed(0);
+
+
+/* ================================================================ LADDER */
+
+function bestPartner(s){
+  let best=null;
+  for(const id in s.partners){const p=s.partners[id];
+    if(p.g<2)continue;
+    const score=p.w/p.g + p.g/100;
+    if(!best||score>best.score)best={id,...p,score};}
+  return best;
+}
+
+/* ========================================================= SKILL ENGINE */
+// A profile counts each rater's most recent card once, so nobody can stack
+// the deck by rating the same player five times.
+function skillProfile(pid){
+  const all=S.ratings.filter(r=>r.player===pid).sort((a,b)=>a.ts-b.ts);
+  if(!all.length)return null;
+  const key=e=>(e.rater||'anon').trim().toLowerCase()||'anon';
+  const latest={}, prior={};
+  all.forEach(e=>{ if(latest[key(e)])prior[key(e)]=latest[key(e)]; latest[key(e)]=e; });
+  const live=Object.values(latest);
+  const mean=set=>{const o={};SKILLS.forEach(s=>o[s.k]=set.reduce((a,e)=>a+(+e[s.k]||0),0)/set.length);return o;};
+  const avg=mean(live);
+  const index=SKILLS.reduce((a,s)=>a+avg[s.k],0)/SKILLS.length;
+  const old=Object.values(prior);
+  let trend=null;
+  if(old.length){
+    const pa=mean(old);
+    trend=index-SKILLS.reduce((a,s)=>a+pa[s.k],0)/SKILLS.length;
+  }
+  const top=SKILLS.slice().sort((a,b)=>avg[b.k]-avg[a.k]);
+  const hi=Math.max(...SKILLS.map(s=>avg[s.k])), lo=Math.min(...SKILLS.map(s=>avg[s.k]));
+  const bests=SKILLS.filter(s=>avg[s.k]===hi), worsts=SKILLS.filter(s=>avg[s.k]===lo);
+  const newest=live.slice().sort((a,b)=>b.ts-a.ts)[0];
+  return {avg,index,trend,raters:live.length,cards:all.length,
+    best:top[0],worst:top[top.length-1],bests,worsts,level:hi===lo,
+    byName:live.length>1?`${live.length} raters`:(newest.rater||'anon'),
+    updated:Math.max(...live.map(e=>e.ts))};
+}
+
+
+function ratedPlayers(){
+  return S.players.map(p=>({p,pr:skillProfile(p.id)})).filter(x=>x.pr);
+}
+
+function currentCard(){
+  const o={};SKILLS.forEach(s=>o[s.k]=+($('#sk_'+s.k)?$('#sk_'+s.k).value:5));return o;
+}
+
+// Pair people so the two of them cover all five attributes between them.
+function complementaryPairs(ids){
+  const pr={};ids.forEach(id=>pr[id]=skillProfile(id));
+  const unrated=ids.filter(id=>!pr[id]);
+  const pool=ids.filter(id=>pr[id]);
+  const cover=(a,b)=>SKILLS.reduce((s,k)=>s+Math.max(pr[a].avg[k.k],pr[b].avg[k.k]),0);
+  const pairs=[];
+  pool.sort((a,b)=>pr[b].index-pr[a].index);
+  while(pool.length>1){
+    const a=pool.shift();
+    let bi=0,bc=-Infinity;
+    pool.forEach((b,i)=>{const c=cover(a,b)+Math.random()*0.01;if(c>bc){bc=c;bi=i;}});
+    pairs.push([a,pool.splice(bi,1)[0]]);
+  }
+  const rest=pool.concat(unrated);
+  return pairs.concat(randomPairs(rest));
+}
+
+/* ================================================================ RECORD */
+function playerOptions(sel,val){
+  const opts=['<option value="">— pick a player —</option>'].concat(
+    S.players.slice().sort((a,b)=>a.name.localeCompare(b.name))
+      .map(p=>`<option value="${p.id}"${p.id===val?' selected':''}>${esc(p.name)}${p.active===false?' (out)':''}</option>`));
+  sel.innerHTML=opts.join('');
+}
+function recordSlots(){return $$('#v-record select[data-slot]');}
+function currentPick(){
+  const v={};recordSlots().forEach(s=>v[s.dataset.slot]=s.value);return v;
+}
+
+
+
+
+/* ================================================================== MEET */
+function activePlayers(){return S.players.filter(p=>p.active!==false);}
+// A referee has to be a registered player: an approved account with a roster entry.
+function refPlayers(){
+  return S.accounts.filter(a=>a.status==='active'&&a.playerId&&byId(a.playerId));
+}
+function fillRefSelects(){
+  const regs=refPlayers();
+  const fill=(sel,busy)=>{
+    if(!sel)return;
+    const cur=sel.value;
+    const free=regs.filter(a=>!busy.includes(a.playerId));
+    sel.innerHTML = free.length
+      ? '<option value="">&mdash; pick the referee &mdash;</option>'+
+        free.map(a=>`<option value="${a.playerId}"${a.playerId===cur?' selected':''}>${esc(a.name)}</option>`).join('')
+      : `<option value="">${regs.length?'everyone registered is playing':'nobody has registered yet'}</option>`;
+  };
+  // a referee cannot be one of the four on court
+  const v=$('#matchRef')?currentPick():{};
+  fill($('#matchRef'),[v.a0,v.a1,v.b0,v.b1].filter(Boolean));
+  fill($('#meetRef'),[]);
+}
+const refNeeded=sel=>sel&&[...sel.options].some(o=>o.value);
+
+function selectedFrom(host){return Array.from(host._sel||[]).filter(id=>byId(id));}
+
+function partnerHistory(){
+  const pc={},oc={};
+  const key=(a,b)=>[a,b].sort().join('|');
+  S.matches.forEach(m=>{
+    pc[key(m.a[0],m.a[1])]=(pc[key(m.a[0],m.a[1])]||0)+1;
+    pc[key(m.b[0],m.b[1])]=(pc[key(m.b[0],m.b[1])]||0)+1;
+    m.a.forEach(x=>m.b.forEach(y=>{oc[key(x,y)]=(oc[key(x,y)]||0)+1;}));
+  });
+  return {pc,oc,key};
+}
+
+// Heuristic rotation: balance sit-outs, minimise repeated partners then repeated opponents.
+function buildRotation(ids,desks,rounds,seedHistory){
+  const {pc,oc,key}=seedHistory?partnerHistory():{pc:{},oc:{},key:(a,b)=>[a,b].sort().join('|')};
+  const P={...pc}, O={...oc}, sit={};
+  ids.forEach(i=>sit[i]=0);
+  const courts=Math.min(desks,Math.floor(ids.length/4));
+  if(courts<1)return null;
+  const out=[];
+  for(let r=0;r<rounds;r++){
+    const need=courts*4;
+    const pool=ids.slice().sort((a,b)=>(sit[a]-sit[b])||Math.random()-0.5);
+    const benched=pool.slice(0,ids.length-need);      // fewest sit-outs so far now sit
+    const playing=pool.slice(ids.length-need);
+    benched.forEach(i=>sit[i]++);
+    let best=null;
+    for(let attempt=0;attempt<260;attempt++){
+      const sh=playing.slice();
+      for(let i=sh.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[sh[i],sh[j]]=[sh[j],sh[i]];}
+      const games=[]; let cost=0;
+      for(let c=0;c<courts;c++){
+        const q=sh.slice(c*4,c*4+4);
+        const options=[[[q[0],q[1]],[q[2],q[3]]],[[q[0],q[2]],[q[1],q[3]]],[[q[0],q[3]],[q[1],q[2]]]];
+        let bo=null;
+        for(const o of options){
+          let cc=4*((P[key(o[0][0],o[0][1])]||0)+(P[key(o[1][0],o[1][1])]||0));
+          o[0].forEach(x=>o[1].forEach(y=>cc+=(O[key(x,y)]||0)));
+          if(!bo||cc<bo.cost)bo={o,cost:cc};
+        }
+        games.push(bo.o); cost+=bo.cost;
+      }
+      if(!best||cost<best.cost)best={games,cost};
+      if(best.cost===0)break;
+    }
+    best.games.forEach(([A,B])=>{
+      P[key(A[0],A[1])]=(P[key(A[0],A[1])]||0)+1;
+      P[key(B[0],B[1])]=(P[key(B[0],B[1])]||0)+1;
+      A.forEach(x=>B.forEach(y=>{O[key(x,y)]=(O[key(x,y)]||0)+1;}));
+    });
+    out.push({games:best.games.map(([a,b])=>({a,b,sa:'',sb:''})),bench:benched,done:false});
+  }
+  return out;
+}
+function balancedPairs(ids){
+  const r=id=>(STATS[id]?STATS[id].rating:S.settings.base);
+  const s=ids.slice().sort((a,b)=>r(b)-r(a));
+  const pairs=[];
+  while(s.length>1)pairs.push([s.shift(),s.pop()]);
+  return pairs;
+}
+function randomPairs(ids){
+  const s=ids.slice();
+  for(let i=s.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[s[i],s[j]]=[s[j],s[i]];}
+  const pairs=[];while(s.length>1)pairs.push([s.shift(),s.shift()]);
+  return pairs;
+}
+function freshPairs(ids){
+  const {pc,key}=partnerHistory();
+  const pool=ids.slice(),pairs=[];
+  while(pool.length>1){
+    const a=pool.shift();
+    let bi=0,bc=Infinity;
+    pool.forEach((b,i)=>{const c=(pc[key(a,b)]||0)+Math.random()*0.4;if(c<bc){bc=c;bi=i;}});
+    pairs.push([a,pool.splice(bi,1)[0]]);
+  }
+  return pairs;
+}
+function roundRobinPairs(teams){
+  const t=teams.slice(); if(t.length%2)t.push(null);
+  const n=t.length, rounds=[];
+  for(let r=0;r<n-1;r++){
+    const games=[];
+    for(let i=0;i<n/2;i++){const x=t[i],y=t[n-1-i];if(x&&y)games.push({a:x,b:y,sa:'',sb:''});}
+    rounds.push({games,bench:[],done:false});
+    t.splice(1,0,t.pop());
+  }
+  return rounds;
+}
+function mexicanoRound(ids,points){
+  const s=ids.slice().sort((a,b)=>(points[b]||0)-(points[a]||0)||Math.random()-0.5);
+  const games=[];
+  for(let i=0;i+3<s.length;i+=4)games.push({a:[s[i],s[i+3]],b:[s[i+1],s[i+2]],sa:'',sb:''});
+  return games;
+}
+
+/* King's Court: desk 1 is the king's desk. Winners climb, losers drop, and
+   the two who arrive together are split up so partners keep rotating. */
+function kingsFirst(ids,desks){
+  const courts=Math.min(desks,Math.floor(ids.length/4));
+  if(courts<1)return null;
+  const seeded=ids.slice().sort((a,b)=>((STATS[b]||{}).rating||0)-((STATS[a]||{}).rating||0));
+  const playing=seeded.slice(0,courts*4), bench=seeded.slice(courts*4);
+  const games=[];
+  for(let c=0;c<courts;c++){
+    const q=playing.slice(c*4,c*4+4);
+    games.push({a:[q[0],q[3]],b:[q[1],q[2]],sa:'',sb:''});   // strongest with weakest on each desk
+  }
+  return {games,bench,done:false};
+}
+function kingsNext(){
+  const last=meet.rounds[meet.rounds.length-1];
+  const courts=last.games.length;
+  const win=[],lose=[];
+  last.games.forEach(g=>{
+    const aw=+g.sa>+g.sb;
+    win.push((aw?g.a:g.b).slice());
+    lose.push((aw?g.b:g.a).slice());
+  });
+  let bench=last.bench.slice();
+  if(bench.length){                       // bottom desk's losers rotate off
+    const inn=bench.slice(0,Math.min(2,bench.length));
+    const drop=lose[courts-1];
+    bench=bench.slice(inn.length).concat(drop.slice(0,inn.length));
+    lose[courts-1]=inn.concat(drop.slice(inn.length));
+  }
+  const games=[];
+  for(let d=0;d<courts;d++){
+    let down,up;
+    if(courts===1){down=win[0];up=lose[0];}
+    else if(d===0){down=win[0];up=win[1];}
+    else if(d===courts-1){down=lose[d-1];up=lose[d];}
+    else {down=lose[d-1];up=win[d+1];}
+    games.push({a:[down[0],up[0]],b:[down[1],up[1]],sa:'',sb:''});
+  }
+  meet.rounds.push({games,bench,done:false});
+}
+function buildMeet(){
+  const ids=selectedFrom($('#meetPicks'));
+  const fmt=$('#meetFormat').value;
+  const desks=clamp(+$('#meetDesks').value||1,1,12);
+  const rounds=clamp(+$('#meetRounds').value||1,1,24);
+  const target=clamp(+$('#meetTarget').value||21,1,999);
+  if(ids.length<4){toast('You need at least four players for a meet.');return;}
+  if(refNeeded($('#meetRef'))&&!$('#meetRef').value){toast('Pick the referee — it has to be a registered player.');return;}
+  let rs=null;
+  if(fmt==='americano'||fmt==='random'){
+    rs=buildRotation(ids,desks,rounds,fmt==='americano');
+  }else if(fmt==='kings'){
+    const r=kingsFirst(ids,desks);
+    if(!r){toast('Not enough players for a King’s Court.');return;}
+    rs=[r];
+  }else if(fmt==='mexicano'){
+    const courts=Math.min(desks,Math.floor(ids.length/4));
+    const need=courts*4;
+    const seeded=ids.slice().sort((a,b)=>((STATS[b]||{}).rating||0)-((STATS[a]||{}).rating||0));
+    const playing=seeded.slice(0,need), bench=seeded.slice(need);
+    const seedPts={};playing.forEach(id=>seedPts[id]=(STATS[id]||{}).rating||0);
+    rs=[{games:mexicanoRound(playing,seedPts),bench,done:false}];
+  }else{ // fixed or complementary pairs, played as a round robin
+    const pairs = fmt==='complement' ? complementaryPairs(ids) : balancedPairs(ids);
+    if(pairs.length<2){toast('Not enough players to form two pairs.');return;}
+    rs=roundRobinPairs(pairs).slice(0,rounds);
+  }
+  if(!rs||!rs.length){toast('Could not build a rotation with those numbers.');return;}
+  meet={fmt,desks,target,rounds:rs,created:Date.now(),ids,
+        slot:$('#meetSlot').value, rated:$('#meetRated').checked, ref:$('#meetRef').value||null};
+  renderMeet();
+  toast(`Meet drawn — ${rs.length} round${rs.length>1?'s':''}.`);
+}
+
+function meetPoints(){
+  const pts={};
+  if(!meet)return pts;
+  meet.rounds.forEach(r=>{ if(!r.done)return;
+    r.games.forEach(g=>{
+      if(g.sa===''||g.sb==='')return;
+      g.a.forEach(id=>pts[id]=(pts[id]||0)+ +g.sa);
+      g.b.forEach(id=>pts[id]=(pts[id]||0)+ +g.sb);
+    });});
+  return pts;
+}
+
+function lockRound(ri){
+  const r=meet.rounds[ri];
+  const bad=r.games.some(g=>g.sa===''||g.sb===''||isNaN(+g.sa)||isNaN(+g.sb));
+  if(bad){toast('Fill in every score on this round first.');return;}
+  if(!S.settings.ties && r.games.some(g=>+g.sa===+g.sb)){toast('Drawn matches are switched off in Setup.');return;}
+  r.games.forEach(g=>{
+    S.matches.push({id:uid(),ts:Date.now(),season:S.season,tag:'meet',
+      slot:meet.slot, rated:meet.rated!==false, ref:meet.ref||null,
+      a:g.a.slice(),b:g.b.slice(),sa:+g.sa,sb:+g.sb});
+  });
+  r.done=true; S.demo=false; save(); refreshStats();
+  if(ri===meet.rounds.length-1){
+    if(meet.fmt==='mexicano')mexNext();
+    if(meet.fmt==='kings')kingsNext();
+  }
+  renderMeet(); renderAll(); toast(`Round ${ri+1} saved — ${r.games.length} result${r.games.length>1?'s':''} added.`);
+}
+function mexNext(){
+  const pts=meetPoints();
+  const courts=Math.min(meet.desks,Math.floor(meet.ids.length/4));
+  const need=courts*4;
+  const order=meet.ids.slice().sort((a,b)=>(pts[b]||0)-(pts[a]||0)||((STATS[b]||{}).rating||0)-((STATS[a]||{}).rating||0));
+  const sitCount={};meet.ids.forEach(i=>sitCount[i]=0);
+  meet.rounds.forEach(r=>r.bench.forEach(i=>sitCount[i]=(sitCount[i]||0)+1));
+  const bench=order.slice().sort((a,b)=>sitCount[a]-sitCount[b]).slice(0,meet.ids.length-need);
+  const playing=order.filter(i=>!bench.includes(i));
+  meet.rounds.push({games:mexicanoRound(playing,pts),bench,done:false});
+}
+
+/* =================================================================== CUP */
+function buildCup(){
+  const ids=selectedFrom($('#cupPicks'));
+  if(ids.length<4){toast('A cup needs at least four players.');return;}
+  const mode=$('#cupPairing').value;
+  refreshStats();
+  const pairs = mode==='balanced'?balancedPairs(ids)
+              : mode==='fresh'?freshPairs(ids)
+              : mode==='complement'?complementaryPairs(ids)
+              : randomPairs(ids);
+  if(pairs.length<2){toast('Not enough players to form two pairs.');return;}
+  const r=id=>(STATS[id]?STATS[id].rating:S.settings.base);
+  const teams=pairs.map(p=>({id:uid(),p,r:(r(p[0])+r(p[1]))/2}))
+                   .sort((a,b)=>b.r-a.r).map((t,i)=>({...t,seed:i+1}));
+  cup={id:uid(),name:($('#cupName').value||'').trim()||'Deskball Cup',
+       format:$('#cupFormat').value,teams,results:{},created:Date.now(),
+       odd:ids.length%2?ids[ids.length-1]:null};
+  renderCup();
+  toast(`${cup.teams.length} pairs drawn.`);
+}
+function seedOrder(n){
+  let a=[1];
+  while(a.length<n){const m=a.length*2+1,o=[];for(const s of a){o.push(s,m-s);}a=o;}
+  return a;
+}
+function bracketRounds(){
+  const n=cup.teams.length;
+  let size=1;while(size<n)size*=2;
+  const order=seedOrder(size);
+  const slots=order.map(s=>cup.teams[s-1]||null);
+  const rounds=[];
+  let cur=[];
+  for(let i=0;i<size;i+=2)cur.push([slots[i],slots[i+1]]);
+  let ri=0;
+  while(cur.length>=1){
+    const matches=cur.map((m,mi)=>{
+      const key=`r${ri}m${mi}`, res=cup.results[key];
+      let winner=null,loser=null;
+      if(!m[0]&&!m[1])winner=null;
+      else if(!m[1])winner=m[0];
+      else if(!m[0])winner=m[1];
+      else if(res&&res.sa!==''&&res.sb!==''&&+res.sa!==+res.sb){
+        winner=+res.sa>+res.sb?m[0]:m[1]; loser=+res.sa>+res.sb?m[1]:m[0];
+      }
+      return {key,t:m,res,winner,loser,bye:(!m[0]||!m[1])};
+    });
+    rounds.push(matches);
+    if(cur.length===1)break;
+    const next=[];
+    for(let i=0;i<matches.length;i+=2)next.push([matches[i].winner,matches[i+1].winner]);
+    cur=next; ri++;
+  }
+  return rounds;
+}
+function roundLabel(i,total){
+  const left=total-i;
+  return left===1?'Final':left===2?'Semi-finals':left===3?'Quarter-finals':`Round ${i+1}`;
+}
+
+function commitCup(){
+  if(!cup)return;
+  const ties=[];
+  if(cup.format==='knockout'){
+    bracketRounds().forEach(ms=>ms.forEach(m=>{
+      if(m.bye||!m.res)return;
+      if(m.res.sa===''||m.res.sb==='')return;
+      ties.push({a:m.t[0].p,b:m.t[1].p,sa:+m.res.sa,sb:+m.res.sb});
+    }));
+  }else{
+    const T=cup.teams;
+    for(let i=0;i<T.length;i++)for(let j=i+1;j<T.length;j++){
+      const r=cup.results[`g${i}_${j}`];
+      if(r&&r.sa!==''&&r.sb!=='')ties.push({a:T[i].p,b:T[j].p,sa:+r.sa,sb:+r.sb});
+    }
+  }
+  if(!ties.length){toast('No completed ties to add yet.');return;}
+  if(cup.committed){toast('These ties are already in the log — delete them there first.');return;}
+  ties.forEach(t=>S.matches.push({id:uid(),ts:Date.now(),season:S.season,tag:'cup',a:t.a.slice(),b:t.b.slice(),sa:t.sa,sb:t.sb}));
+  cup.committed=true; S.demo=false; save(); renderAll();
+  toast(`${ties.length} cup tie${ties.length>1?'s':''} added to the ladder.`);
+}
+
+/* ================================================================ LEAGUE */
+
+function startSeason(){
+  const name=($('#newSeasonName').value||'').trim()||`Season ${S.seasons.length+1}`;
+  const keep=(+$('#regress').value||75)/100;
+  refreshStats();
+  const base=S.settings.base;
+  // Bank the regressed ratings as a synthetic starting point by adjusting nothing —
+  // instead store a per-season carry so history stays intact.
+  const sid=uid(), seed={};
+  if(S.settings.seedFromSkill){
+    S.players.forEach(p=>{seed[p.id]=seedRating(p.id);});
+  }else{
+    Object.values(STATS).forEach(s=>{seed[s.id]=Math.round(base+(s.rating-base)*keep);});
+  }
+  S.seasons.push({id:sid,name,started:Date.now(),seed});
+  S.season=sid; $('#newSeasonName').value='';
+  save(); renderAll(); toast(`${name} is now the live season.`);
+}
+
+/* ================================================================= SETUP */
+
+
+/* ============================================================== DRAWER */
+
+
+
+
+/* ============================================================== chrome */
+
+
+
+
+
+/* ===== presentation layer: mobile web app ===== */
+function initials(n){const p=String(n).trim().split(/\s+/);return((p[0]||'?')[0]+(p[1]?p[1][0]:'')).toUpperCase();}
+function avatar(id,cls){return `<span class="av ${cls||''}">${esc(initials(nameOf(id)))}</span>`;}
+function avatarName(n,cls){return `<span class="av ${cls||''}">${esc(initials(n))}</span>`;}
+function formHtml(form){
+  const f=form.slice(-5);
+  if(!f.length)return '<span class="note">no matches</span>';
+  return '<span class="form">'+f.map(r=>`<i class="${r===1?'w':r===0?'l':'d'}"></i>`).join('')+'</span>';
+}
+function dchip(v,suffix){
+  const c=v>0.5?'up':v<-0.5?'down':'flat';
+  return `<span class="dchip ${c}">${v>0?'+':''}${v.toFixed(0)}${suffix||''}</span>`;
+}
+const ICON={
+  ladder:'<path d="M5 21V11M12 21V4M19 21v-7"/>',
+  star:'<path d="m12 3.6 2.5 5.4 5.9.7-4.4 4 1.2 5.8L12 16.6 6.8 19.5 8 13.7l-4.4-4 5.9-.7z"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="3.5"/><path d="M8 3v4M16 3v4M3 10.5h18"/>',
+  cup:'<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5v1.5A3 3 0 0 0 8.5 10M16 6h2.5v1.5A3 3 0 0 1 15.5 10M10 17h4M12 13v4M9.5 20h5"/>',
+  table:'<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9.5h18M3 15h18M9 4v16"/>',
+  gear:'<circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M21.2 12h-2.4M5.2 12H2.8M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7M18.5 18.5l-1.7-1.7M7.2 7.2 5.5 5.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  users:'<circle cx="9" cy="8" r="3.4"/><path d="M3.2 20a5.8 5.8 0 0 1 11.6 0"/><path d="M16 5.2a3.4 3.4 0 0 1 0 5.6M17.6 20a5.8 5.8 0 0 0-2-4.4"/>',
+  inbox:'<path d="M3 13h4l1.5 3h7L17 13h4"/><path d="M4.6 5.5 3 13v5a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-5l-1.6-7.5a1 1 0 0 0-1-.8H5.6a1 1 0 0 0-1 .8z"/>'
+};
+
+/* ---------------------------------------------------------------- HOME */
+function renderHome(){
+  const prev=ladderScope;ladderScope='all';refreshStats();ladderScope=prev;
+  $('#homeChips').innerHTML=[
+    ['ladder','Ladder','ladder'],['skills','Skills','star'],['meet','Meet','cal'],
+    ['cup','Cup','cup'],['league','League','table'],['setup','Setup','gear']
+  ].map(([v,label,ic])=>`<button class="chip" data-go="${v}">
+      <span class="ic"><svg viewBox="0 0 24 24">${ICON[ic]}</svg></span>${label}</button>`).join('');
+
+  const sn=S.seasons.find(s=>s.id===S.season);
+  const n=S.matches.filter(m=>m.season===S.season).length;
+  const played=Object.values(STATS).filter(s=>s.games>0);
+  $('#homeHero').innerHTML=`<div class="hero"><div class="in">
+      <div class="eyebrow">${esc(sn?sn.name:'Season')}</div>
+      <h3>${n?`${n} match${n===1?'':'es'} played`:'No matches yet'}</h3>
+      <div class="sub">${played.length?`${played.length} players on the ladder · ${S.players.length} on the roster`:'Add your players, then record the first result'}</div>
+      <button class="btnw" data-go="${played.length?'meet':'setup'}">${played.length?'Build a meet':'Add players'}</button>
+    </div></div>`;
+
+  const last=S.matches.slice().sort((a,b)=>b.ts-a.ts)[0];
+  $('#homeMatch').innerHTML = last ? matchCard(last,true)
+    : `<div class="card"><div class="empty">Nothing played yet.<br>Tap the <b style="color:var(--vio2)">+</b> button to record your first match.</div></div>`;
+
+  const top=ranked().filter(s=>s.games>0).slice(0,5);
+  const q=($('#homeSearch').value||'').trim().toLowerCase();
+  const list=q?ranked().filter(s=>s.name.toLowerCase().includes(q)).slice(0,6):top;
+  $('#homeLadder').innerHTML = list.length ? list.map(s=>ladderRow(s,ranked().indexOf(s)+1)).join('')
+    : `<div class="card"><div class="empty">${q?'Nobody by that name.':'Nobody rated yet.'}</div></div>`;
+
+  const movers=played.filter(s=>Math.abs(s.last)>0.5).sort((a,b)=>Math.abs(b.last)-Math.abs(a.last)).slice(0,3);
+  $('#homeMovers').innerHTML = movers.length ? movers.map(s=>`
+    <button class="r" data-player="${s.id}">
+      ${avatar(s.id)}
+      <span class="rm"><span class="rn">${esc(s.name)}</span>
+        <span class="rs">${s.last>0?'gained':'lost'} ground last time out</span></span>
+      <span class="rv"><span class="rnum">${Math.round(s.rating)}</span>${dchip(s.last)}</span>
+    </button>`).join('')
+    : `<div class="card"><div class="empty">No movement yet.</div></div>`;
+}
+function matchCard(m,showTeams){
+  const aw=m.sa>m.sb, dw=m.sb>m.sa;
+  return `<div class="mcard">
+    <div class="mtop"><span>${fmtDate(m.ts)}${m.slot?' &middot; '+slotName(m.slot):''}</span><span>${m.rated===false?'Unrated':m.tag==='cup'?'Cup tie':m.tag==='meet'?'Meet':'League match'}</span></div>
+    <div class="mt">
+      <div class="sd">
+        <span class="pairav">${m.a.map(id=>avatar(id,'sm')).join('')}</span>
+        <span class="nm" style="${aw?'':'opacity:.62'}">${esc(pairName(m.a))}</span>
+      </div>
+      <div class="mid">
+        <div class="sc">${m.sa}<span style="color:var(--dim2)">:</span>${m.sb}</div>
+        <span class="livechip done">Final</span>
+      </div>
+      <div class="sd">
+        <span class="pairav">${m.b.map(id=>avatar(id,'sm')).join('')}</span>
+        <span class="nm" style="${dw?'':'opacity:.62'}">${esc(pairName(m.b))}</span>
+      </div>
+    </div>
+    ${showTeams?`<div style="text-align:center;margin-top:12px;font-size:11.5px;color:var(--dim2);font-weight:600">
+      ${esc(pairName(aw?m.a:m.b))} won by ${Math.abs(m.sa-m.sb)}${m.ref?' &middot; refereed by '+esc(shortName(m.ref)):''}</div>`:''}
+  </div>`;
+}
+function ladderRow(s,rank){
+  const prov=s.games<S.settings.prov;
+  return `<button class="r ${rank===1?'first':''}" data-player="${s.id}">
+    <span class="rk">${rank}</span>
+    ${avatar(s.id)}
+    <span class="rm"><span class="rn">${esc(s.name)}${prov?' <span class="tag">prov</span>':''}</span>
+      <span class="rs">${s.games} played &middot; ${s.w}W ${s.l}L${s.games?' &middot; '+Math.round(s.w/s.games*100)+'%':''}</span></span>
+    <span class="rv"><span class="rnum">${Math.round(s.rating)}</span>${s.games?dchip(s.last):''}</span>
+  </button>`;
+}
+
+/* -------------------------------------------------------------- LADDER */
+function renderLadder(){
+  refreshStats();
+  const all=ranked();
+  const min=+($('#minGames').value||0);
+  $('#mgEcho').textContent=min;
+  const q=($('#ladderSearch').value||'').trim().toLowerCase();
+  const rows=all.filter(s=>s.games>=min&&(!q||s.name.toLowerCase().includes(q)));
+  const played=all.filter(s=>s.games>0);
+  const lead=all.find(s=>s.games>=S.settings.prov)||all[0];
+  const lb=$('#leaderBlock');
+  if(!lead||!lead.games){
+    lb.innerHTML='<div class="card"><div class="empty">Nobody on the board yet.<br>Add players under Setup, then record a match.</div></div>';
+  }else{
+    const wr=Math.round(lead.w/lead.games*100);
+    lb.innerHTML=`<div class="hero"><div class="in">
+      <div class="eyebrow">Top of the ladder${ladderScope==='season'?' &middot; this season':''}</div>
+      <h3>${esc(lead.name)}</h3>
+      <div class="sub">${lead.streak>0?`${lead.streak} straight wins`:lead.streak<0?`${-lead.streak} straight losses`:'Level'} &middot; peak ${Math.round(lead.peak)}</div>
+      <div style="display:flex;gap:22px;margin-top:14px">
+        <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.72)">DBR</div>
+          <div style="font-size:26px;font-weight:800">${Math.round(lead.rating)}</div></div>
+        <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.72)">Played</div>
+          <div style="font-size:26px;font-weight:800">${lead.games}</div></div>
+        <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.72)">Win %</div>
+          <div style="font-size:26px;font-weight:800">${wr}</div></div>
+      </div></div></div>`;
+  }
+  $('#ladderTbl').innerHTML = rows.length ? rows.map(s=>ladderRow(s,all.indexOf(s)+1)).join('')
+    : `<div class="card"><div class="empty">${S.players.length?'Nobody matches that filter.':'No players yet — add some under Setup.'}</div></div>`;
+  const scoped=ladderScope==='season'?S.matches.filter(m=>m.season===S.season):S.matches;
+  $('#ladderNote').textContent = played.length?`${played.length} rated across ${scoped.length} matches`:'';
+  $('#provEcho').textContent=S.settings.prov;
+}
+
+/* -------------------------------------------------------------- PLAYER */
+function sparkline(hist,w,h){
+  const pts=hist.filter(p=>p.t!==null);
+  if(pts.length<2)return '<p class="note">Not enough matches to plot a trend yet.</p>';
+  const vals=pts.map(p=>p.r), lo=Math.min(...vals), hi=Math.max(...vals);
+  const pad=Math.max((hi-lo)*0.18,8), y0=lo-pad, y1=hi+pad;
+  const L=40,R=10,T=12,B=18;
+  const x=i=>L+(w-L-R)*(i/(pts.length-1));
+  const y=v=>T+(h-T-B)*(1-(v-y0)/(y1-y0));
+  const d=pts.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p.r).toFixed(1)}`).join(' ');
+  const area=d+` L${x(pts.length-1).toFixed(1)},${(h-B).toFixed(1)} L${L},${(h-B).toFixed(1)} Z`;
+  const ticks=[y1,(y0+y1)/2,y0].map(v=>
+    `<line class="gl" x1="${L}" y1="${y(v).toFixed(1)}" x2="${w-R}" y2="${y(v).toFixed(1)}"/>
+     <text class="lbl" x="${L-6}" y="${(y(v)+3.5).toFixed(1)}" text-anchor="end">${Math.round(v)}</text>`).join('');
+  const last=pts[pts.length-1];
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Rating over time, ${Math.round(pts[0].r)} to ${Math.round(last.r)}">
+    <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#7C4DFF" stop-opacity=".30"/><stop offset="100%" stop-color="#7C4DFF" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${ticks}<path class="area" d="${area}"/><path class="ln" d="${d}"/>
+    <circle class="pt" cx="${x(pts.length-1).toFixed(1)}" cy="${y(last.r).toFixed(1)}" r="4"/>
+    <text class="lbl" x="${L}" y="${h-4}">${fmtDate(pts[0].t)}</text>
+    <text class="lbl" x="${w-R}" y="${h-4}" text-anchor="end">${fmtDate(last.t)}</text></svg>`;
+}
+function donut(pct,label){
+  const r=42,c=2*Math.PI*r, on=c*clamp(pct,0,100)/100;
+  return `<div class="donut"><svg viewBox="0 0 100 100">
+      <defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#7C4DFF"/><stop offset="100%" stop-color="#C44BF0"/></linearGradient></defs>
+      <circle class="trk" cx="50" cy="50" r="${r}"/>
+      <circle class="val" cx="50" cy="50" r="${r}" stroke-dasharray="0 ${c.toFixed(1)}" data-dash="${on.toFixed(1)} ${(c-on).toFixed(1)}"/>
+    </svg><div class="mid">${label}</div></div>`;
+}
+function openDrawer(id){
+  drawerPlayer=id;
+  const prev=ladderScope;ladderScope='all';refreshStats();ladderScope=prev;
+  const s=STATS[id]; if(!s)return;
+  const rank=ranked().indexOf(s)+1;
+  const wr=s.games?Math.round(s.w/s.games*100):0;
+  const pr=skillProfile(id);
+  const partners=Object.entries(s.partners).sort((a,b)=>b[1].g-a[1].g).slice(0,5);
+  const opps=Object.entries(s.opps).sort((a,b)=>b[1].g-a[1].g).slice(0,4);
+  const recent=S.matches.filter(m=>[...m.a,...m.b].includes(id)).sort((a,b)=>b.ts-a.ts).slice(0,6);
+  const sn=S.seasons.find(x=>x.id===S.season);
+  $('#playerBody').innerHTML=`
+    <div class="phero">
+      <div class="in">
+        <div style="position:relative">${avatar(id,'lg')}<span class="badge">${rank}</span></div>
+        <div style="min-width:0">
+          <h2>${esc(s.name)}</h2>
+          <div class="team">Rank ${rank} of ${S.players.length} &middot; ${esc(sn?sn.name:'')}</div>
+          ${s.games<S.settings.prov?'<span class="tag" style="margin-top:7px">Provisional</span>':''}
+        </div>
+      </div>
+      <div class="tiles t2" style="margin-top:16px">
+        <div class="tile" style="background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.14)">
+          <div class="k" style="color:rgba(255,255,255,.66)">DBR</div><div class="v">${Math.round(s.rating)}</div></div>
+        <div class="tile" style="background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.14)">
+          <div class="k" style="color:rgba(255,255,255,.66)">Skill index</div>
+          <div class="v">${pr?pr.index.toFixed(1)+'<small> /'+S.settings.skillMax+'</small>':'&mdash;'}</div></div>
+      </div>
+    </div>
+
+    <div class="tiles" style="margin-top:12px">
+      <div class="tile"><div class="k">Played</div><div class="v">${s.games}</div></div>
+      <div class="tile"><div class="k">Won</div><div class="v">${s.w}</div></div>
+      <div class="tile"><div class="k">Win %</div><div class="v">${s.games?wr:'&mdash;'}</div></div>
+    </div>
+    <div class="tiles" style="margin-top:10px">
+      <div class="tile"><div class="k">Peak</div><div class="v">${Math.round(s.peak)}</div></div>
+      <div class="tile"><div class="k">Point diff</div><div class="v">${s.games?sgn(s.pf-s.pa):'&mdash;'}</div></div>
+      <div class="tile"><div class="k">Streak</div><div class="v">${s.streak===0?'&mdash;':(s.streak>0?s.streak+'W':(-s.streak)+'L')}</div></div>
+    </div>
+
+    ${pr?`<div class="sh"><h2>Performance score</h2>${pr.trend===null?'':`<span class="dchip ${pr.trend>0.05?'up':pr.trend<-0.05?'down':'flat'}">${pr.trend>0?'+':''}${pr.trend.toFixed(1)}</span>`}</div>
+      <div class="card">
+        <div class="perf">
+          ${donut(pr.index/S.settings.skillMax*100,Math.round(pr.index/S.settings.skillMax*100)+'%')}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12.5px;color:var(--dim);line-height:1.5">${profileSentence(pr)}</div>
+            <div class="note" style="margin-top:7px">rated by ${esc(pr.byName||adminName())} &middot; ${fmtDate(pr.updated)}</div>
+          </div>
+        </div>
+        ${radar(pr.avg,s.name)}
+        <div style="margin-top:6px">${skillBars(pr.avg)}</div>
+      </div>`
+    :`<div class="sh"><h2>Skill profile</h2></div>
+      <div class="card"><div class="empty">Nobody has rated ${esc(s.name.split(' ')[0])} yet.<br>
+      <button class="btn sm" data-rate="${id}" style="margin-top:12px">Fill in a card</button></div></div>`}
+
+    <div class="sh"><h2>Rating history</h2></div>
+    <div class="card">${sparkline(s.hist,420,150)}</div>
+
+    <div class="sh"><h2>Last five</h2></div>
+    <div class="card tight" style="display:flex;align-items:center;gap:12px">
+      ${formHtml(s.form)}<span class="note">${s.games?`${s.w} wins from ${s.games}`:'nothing played'}${
+        S.matches.filter(m=>m.ref===id).length?` &middot; refereed ${S.matches.filter(m=>m.ref===id).length}`:''}</span></div>
+
+    <div class="sh"><h2>Partners</h2></div>
+    <div class="rows">${partners.length?partners.map(([pid,p])=>`
+      <button class="r" data-player="${pid}">${avatar(pid,'sm')}
+        <span class="rm"><span class="rn">${esc(nameOf(pid))}</span>
+          <span class="rs">${p.g} together &middot; ${Math.round(p.w/p.g*100)}% won</span></span>
+        <span class="rv">${dchip(p.d)}</span></button>`).join('')
+      :'<div class="card"><div class="empty">No partnerships yet.</div></div>'}</div>
+
+    <div class="sh"><h2>Most faced</h2></div>
+    <div class="rows">${opps.length?opps.map(([oid,o])=>`
+      <button class="r" data-player="${oid}">${avatar(oid,'sm')}
+        <span class="rm"><span class="rn">${esc(nameOf(oid))}</span>
+          <span class="rs">${o.w}W &ndash; ${o.g-o.w}L against</span></span>
+        <span class="rv"><span class="rnum">${o.g}</span></span></button>`).join('')
+      :'<div class="card"><div class="empty">No opponents yet.</div></div>'}</div>
+
+    <div class="sh"><h2>Recent matches</h2></div>
+    <div class="rows">${recent.length?recent.map(m=>{
+      const onA=m.a.includes(id), mine=onA?m.sa:m.sb, theirs=onA?m.sb:m.sa;
+      const mate=(onA?m.a:m.b).find(x=>x!==id), foes=(onA?m.b:m.a);
+      const won=mine>theirs;
+      return `<div class="r static">
+        <span class="rk" style="color:${won?'var(--good)':mine<theirs?'var(--bad)':'var(--dim2)'}">${won?'W':mine<theirs?'L':'D'}</span>
+        <span class="rm"><span class="rn">${mine} &ndash; ${theirs}</span>
+          <span class="rs">with ${esc(shortName(mate))} v ${esc(foes.map(shortName).join(' + '))}</span></span>
+        <span class="rv"><span class="note">${fmtDate(m.ts)}</span></span></div>`;}).join('')
+      :'<div class="card"><div class="empty">Nothing yet.</div></div>'}</div>
+    <div style="height:20px"></div>`;
+}
+function closeDrawer(){drawerPlayer=null;}
+
+/* -------------------------------------------------------------- RECORD */
+function renderRecord(){
+  recordSlots().forEach(s=>playerOptions(s,s.value));
+  if(!$('#matchDate').value)$('#matchDate').value=new Date().toISOString().slice(0,10);
+  $('#scoreA').placeholder=S.settings.target;$('#scoreB').placeholder=S.settings.target;
+  [$('#matchSlot'),$('#meetSlot')].forEach(sel=>{
+    if(sel&&!sel.options.length)sel.innerHTML=SLOTS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
+  });
+  fillRefSelects();
+  renderPredict();renderLog();
+}
+function renderPredict(){
+  const v=currentPick(), box=$('#predict');
+  const ids=[v.a0,v.a1,v.b0,v.b1].filter(Boolean);
+  const ok=ids.length===4&&new Set(ids).size===4;
+  const sa=$('#scoreA').value, sb=$('#scoreB').value;
+  $('#sideA').style.borderColor = (sa!==''&&sb!==''&&+sa>+sb)?'var(--good)':'var(--stroke)';
+  $('#sideB').style.borderColor = (sa!==''&&sb!==''&&+sb>+sa)?'var(--good)':'var(--stroke)';
+  if(!ok){
+    $('#ratingA').textContent='';$('#ratingB').textContent='';
+    box.innerHTML='<div class="empty" style="padding:14px">Pick four different players to see the rating forecast.</div>';return;
+  }
+  const now=computeStats(S.matches,seedMap());
+  const r=id=>(now[id]?now[id].rating:S.settings.base);
+  const ra=(r(v.a0)+r(v.a1))/2, rb=(r(v.b0)+r(v.b1))/2;
+  const ea=1/(1+Math.pow(10,(rb-ra)/400));
+  const T=S.settings.target, lose=Math.max(0,Math.round(T*0.6));
+  const probe=win=>{
+    const test={id:'probe',ts:Date.now()+1,season:S.season,tag:'test',a:[v.a0,v.a1],b:[v.b0,v.b1],sa:win?T:lose,sb:win?lose:T};
+    const after=computeStats(S.matches.concat([test]),seedMap());
+    return {a:after[v.a0].rating-now[v.a0].rating,b:after[v.b0].rating-now[v.b0].rating};
+  };
+  const ifA=probe(true), ifB=probe(false);
+  $('#ratingA').textContent=`avg ${Math.round(ra)}`;
+  $('#ratingB').textContent=`avg ${Math.round(rb)}`;
+  box.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span class="note" style="font-weight:700">Forecast</span>
+      <span class="note">A wins <b style="color:var(--tx)">${Math.round(ea*100)}%</b> of the time</span>
+    </div>
+    <div style="height:8px;border-radius:99px;background:var(--card3);overflow:hidden;display:flex">
+      <i style="display:block;width:${(ea*100).toFixed(1)}%;background:var(--grad)"></i></div>
+    <div class="two" style="margin-top:13px">
+      <div class="tile" style="background:var(--card2)">
+        <div class="k">If A wins ${T}&ndash;${lose}</div>
+        <div class="v" style="font-size:16px">${dchip(ifA.a)} ${dchip(ifA.b)}</div></div>
+      <div class="tile" style="background:var(--card2)">
+        <div class="k">If B wins ${lose}&ndash;${T}</div>
+        <div class="v" style="font-size:16px">${dchip(ifB.a)} ${dchip(ifB.b)}</div></div>
+    </div>
+    <p class="note" style="margin-top:9px">Change shown for one player on each pair.</p>`;
+}
+function renderLog(){
+  const ms=S.matches.slice().sort((a,b)=>b.ts-a.ts).slice(0,25);
+  $('#logTbl').innerHTML = ms.length ? ms.map(m=>{
+    const aw=m.sa>m.sb;
+    return `<div class="r static">
+      <span class="rm"><span class="rn" style="font-size:13.5px">${esc(pairName(aw?m.a:m.b))}</span>
+        <span class="rs">beat ${esc(pairName(aw?m.b:m.a))} &middot; ${fmtDate(m.ts)}${m.slot?' &middot; '+slotName(m.slot):''}${m.ref?' &middot; ref '+esc(shortName(m.ref)):''}${m.rated===false?' &middot; unrated':''}</span></span>
+      <span class="rv"><span class="rnum">${Math.max(m.sa,m.sb)}&ndash;${Math.min(m.sa,m.sb)}</span></span>
+      <button class="btn warn xs" data-del="${m.id}">Delete</button></div>`;}).join('')
+    : '<div class="card"><div class="empty">No matches recorded yet.</div></div>';
+  $('#logNote').textContent = S.matches.length>25?`showing 25 of ${S.matches.length}`:`${S.matches.length} recorded`;
+}
+
+/* -------------------------------------------------------------- SKILLS */
+function radar(avg,label){
+  const W=360,H=274,cx=180,cy=136,R=84;
+  const pt=(i,f)=>{const a=(-90+i*72)*Math.PI/180;return[cx+Math.cos(a)*R*f,cy+Math.sin(a)*R*f];};
+  const poly=f=>SKILLS.map((s,i)=>pt(i,f).map(n=>n.toFixed(1)).join(',')).join(' ');
+  const MX=S.settings.skillMax;
+  const web=[0.25,0.5,0.75,1].map(f=>`<polygon class="web" points="${poly(f)}"/>`).join('');
+  const spokes=SKILLS.map((s,i)=>{const[x,y]=pt(i,1);return `<line class="spoke" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;}).join('');
+  const shape=SKILLS.map((s,i)=>pt(i,clamp(avg[s.k],0,MX)/MX).map(n=>n.toFixed(1)).join(',')).join(' ');
+  const knots=SKILLS.map((s,i)=>{const[x,y]=pt(i,clamp(avg[s.k],0,MX)/MX);return `<circle class="knot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.4"/>`;}).join('');
+  const labels=SKILLS.map((s,i)=>{
+    const a=(-90+i*72)*Math.PI/180, x=cx+Math.cos(a)*(R+22), y=cy+Math.sin(a)*(R+22);
+    const co=Math.cos(a), si=Math.sin(a);
+    const anch=Math.abs(co)<0.25?'middle':(co>0?'start':'end');
+    const dy=si>0.3?11:(si<-0.3?-3:4);
+    return `<text class="ax" x="${x.toFixed(1)}" y="${(y+dy).toFixed(1)}" text-anchor="${anch}">${s.short}</text>
+            <text class="axv" x="${x.toFixed(1)}" y="${(y+dy+12).toFixed(1)}" text-anchor="${anch}">${avg[s.k].toFixed(1)}</text>`;
+  }).join('');
+  return `<svg class="radar" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label||'Skill profile')}: ${SKILLS.map(s=>s.short+' '+avg[s.k].toFixed(1)).join(', ')} out of ${MX}">
+    ${web}${spokes}<polygon class="fillp" points="${shape}"/>${knots}${labels}</svg>`;
+}
+function skillBars(avg){
+  const MX=S.settings.skillMax;
+  return SKILLS.map(s=>{
+    const v=avg[s.k], full=Math.floor(v), half=(v-full)>=0.34&&full<MX;
+    let cells='';
+    for(let i=0;i<MX;i++)cells+=`<i class="${i<full?'on':(i===full&&half?'half':'')}"></i>`;
+    return `<div class="sl"><span class="nm">${s.short}</span><span class="sbar">${cells}</span><span class="vv">${v.toFixed(1)}</span></div>`;
+  }).join('');
+}
+// Names every tied category rather than picking one arbitrarily.
+function profileSentence(pr){
+  const list=arr=>arr.map(s=>`<b style="color:var(--tx)">${s.label.toLowerCase()}</b>`)
+    .reduce((a,x,i,all)=>i===0?x:(i===all.length-1?`${a} and ${x}`:`${a}, ${x}`),'');
+  if(pr.level)return `Rated level right across the card at <b style="color:var(--tx)">${pr.index.toFixed(1)}</b>.`;
+  if(pr.bests.length>2&&pr.worsts.length>2)return `An even card &mdash; nothing stands out either way.`;
+  const s1=`Strongest at ${list(pr.bests)}`;
+  const s2=pr.worsts.length>2?'with no single weak spot':`weakest at ${list(pr.worsts)}`;
+  return `${s1}, ${s2}.`;
+}
+function miniBars(avg){
+  const MX=S.settings.skillMax;
+  return '<span class="mini5">'+SKILLS.map(s=>{
+    const h=Math.round(clamp(avg[s.k],0,MX)/MX*18)+2;
+    return `<i style="height:20px;display:flex;align-items:flex-end"><b style="height:${h}px"></b></i>`;
+  }).join('')+'</span>';
+}
+function renderSkills(){
+  const MX=S.settings.skillMax;
+  const rated=ratedPlayers();
+  $('#skillLeaders').innerHTML='<div class="leadwrap">'+SKILLS.map(s=>{
+    const best=rated.slice().sort((a,b)=>b.pr.avg[s.k]-a.pr.avg[s.k])[0];
+    return `<div class="lead"><div class="k">${s.label}</div>`+
+      (best?`<div class="who">${esc(best.p.name)}</div><div class="sc">${best.pr.avg[s.k].toFixed(1)}<small> /${MX}</small></div>`
+           :`<div class="who" style="color:var(--dim2)">&mdash;</div><div class="sc" style="color:var(--dim2);font-size:13px">nobody rated</div>`)+
+      `<div class="bl">${s.blurb}</div></div>`;
+  }).join('')+'</div>';
+
+  // only the admin files cards
+  const gate=$('#rateGate'), form=$('#rateForm');
+  const me=myAccount();
+  if(isAdmin()){
+    gate.hidden=false;form.hidden=false;
+    gate.innerHTML=`<div class="card tight" style="display:flex;align-items:center;gap:11px">
+      ${avatarName('Club Admin','sm')}
+      <span class="rm"><span class="rn" style="font-size:13.5px">Club admin</span>
+        <span class="rs">signed in &middot; ${inbox()} request${inbox()===1?'':'s'} waiting</span></span>
+      <button class="btn sec xs" data-go="approve">Requests</button></div>`;
+  }else{
+    gate.hidden=false;form.hidden=true;
+    gate.innerHTML=`<div class="card" style="text-align:center;padding:22px 16px">
+      <div style="font-size:26px;margin-bottom:6px">&#128274;</div>
+      <div style="font-weight:800;font-size:15px">Only the admin files rating cards</div>
+      <p class="note" style="margin:7px auto 0;max-width:34ch">Everyone can read every profile. ${me
+        ? 'Think you have improved? Ask for an update and the admin decides.'
+        : 'Sign in to ask for an update to your own rating.'}</p>
+      <div style="margin-top:14px"><button class="btn sm" data-go="account">${me?'Request an update':'Sign in'}</button></div></div>`;
+  }
+  $('#rateByWrap').hidden = true;
+
+  const who=$('#rateWho'), cur=who.value;
+  who.innerHTML=S.players.slice().sort((a,b)=>a.name.localeCompare(b.name))
+    .map(p=>`<option value="${p.id}"${p.id===cur?' selected':''}>${esc(p.name)}</option>`).join('')
+    ||'<option value="">No players yet</option>';
+  if($('#rateSliders').dataset.built!==String(MX)){
+    const mid=Math.round((MX+1)/2);
+    $('#rateSliders').dataset.built=String(MX);
+    $('#rateSliders').innerHTML=SKILLS.map(s=>`
+      <div style="margin-bottom:9px">
+        <label class="f" for="sk_${s.k}">${s.label} &mdash; <b id="ec_${s.k}" style="color:var(--vio2)">${mid}</b> / ${MX}</label>
+        <input type="range" id="sk_${s.k}" data-sk="${s.k}" min="1" max="${MX}" step="1" value="${mid}">
+      </div>`).join('');
+  }
+  renderRatePreview();
+
+  const sortSel=$('#skillSort');
+  if(!sortSel.options.length){
+    sortSel.innerHTML='<option value="index">Sort by index</option>'+
+      SKILLS.map(s=>`<option value="${s.k}">Sort by ${s.label.toLowerCase()}</option>`).join('')+
+      '<option value="name">Sort by name</option>';
+  }
+  const sv=sortSel.value||'index';
+  const rows=rated.slice().sort((a,b)=> sv==='name'?a.p.name.localeCompare(b.p.name)
+    : sv==='index'?b.pr.index-a.pr.index : b.pr.avg[sv]-a.pr.avg[sv]);
+  $('#skillTbl').innerHTML = rows.length ? rows.map((r,i)=>`
+    <button class="r ${i===0&&sv==='index'?'first':''}" data-player="${r.p.id}">
+      <span class="rk">${i+1}</span>${avatar(r.p.id)}
+      <span class="rm"><span class="rn">${esc(r.p.name)}</span>
+        <span class="rs">best at ${r.pr.best.label.toLowerCase()} &middot; rated ${fmtDate(r.pr.updated)}</span></span>
+      <span class="rv">${miniBars(r.pr.avg)}<span class="rnum" style="font-size:15px">${(sv==='index'||sv==='name'?r.pr.index:r.pr.avg[sv]).toFixed(1)}</span></span>
+    </button>`).join('')
+    : `<div class="card"><div class="empty">${S.players.length?'Nobody has been rated yet — fill in a card above.':'Add players under Setup first.'}</div></div>`;
+  $('#rateNote').textContent = S.ratings.length?`${S.ratings.length} card${S.ratings.length===1?'':'s'} filed`:'nothing filed yet';
+
+  const cards=S.ratings.slice().sort((a,b)=>b.ts-a.ts).slice(0,20);
+  $('#cardTbl').innerHTML = cards.length ? cards.map(r=>{
+    const idx=SKILLS.reduce((a,s)=>a+(+r[s.k]||0),0)/SKILLS.length;
+    return `<div class="r static">${avatar(r.player,'sm')}
+      <span class="rm"><span class="rn">${esc(nameOf(r.player))}</span>
+        <span class="rs">by ${esc(r.rater||'anon')} &middot; ${fmtDate(r.ts)}${r.note?' &middot; '+esc(r.note):''}</span></span>
+      <span class="rv"><span class="rnum" style="font-size:15px">${idx.toFixed(1)}</span></span>
+      ${isAdmin()?`<button class="btn warn xs" data-delcard="${r.id}">Delete</button>`:''}</div>`;}).join('')
+    : '<div class="card"><div class="empty">No rating cards yet.</div></div>';
+  $('#cardNote').textContent = S.ratings.length>20?`showing 20 of ${S.ratings.length}`:'';
+}
+function renderRatePreview(){
+  const MX=S.settings.skillMax;
+  const avg=currentCard();
+  const idx=SKILLS.reduce((a,s)=>a+avg[s.k],0)/SKILLS.length;
+  const pid=$('#rateWho').value;
+  const existing=pid?skillProfile(pid):null;
+  SKILLS.forEach(s=>{const e=$('#ec_'+s.k);if(e)e.textContent=avg[s.k];});
+  $('#ratePreview').innerHTML=`
+    <div class="perf" style="margin-bottom:6px">
+      ${donut(idx/MX*100,idx.toFixed(1))}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700">${pid?esc(nameOf(pid)):'No player selected'}</div>
+        <div class="note" style="margin-top:5px">${existing?`currently ${existing.index.toFixed(1)} out of ${MX}, set ${fmtDate(existing.updated)}`:'this would be the first card'}</div>
+      </div>
+    </div>
+    ${radar(avg,'New card')}
+    <div style="margin-top:4px">${skillBars(avg)}</div>`;
+}
+
+/* ---------------------------------------------------------------- MEET */
+function renderPicks(host,countEl){
+  const chosen=host._sel||(host._sel=new Set(activePlayers().map(p=>p.id)));
+  S.players.forEach(p=>{if(!chosen.has(p.id)&&p.active===false)chosen.delete(p.id);});
+  host.innerHTML=S.players.map(p=>`<label class="pk" data-on="${chosen.has(p.id)?1:0}">
+    <input type="checkbox" value="${p.id}" ${chosen.has(p.id)?'checked':''}>${avatarName(p.name)}${esc(p.name)}</label>`).join('')
+    ||'<span class="note">Add players under Setup first.</span>';
+  if(countEl)countEl.textContent=`${chosen.size} selected`;
+}
+function renderMeet(){
+  const host=$('#meetOut');
+  if(!meet){host.innerHTML='';return;}
+  const names={americano:'Americano',mexicano:'Mexicano',kings:'King’s Court',fixed:'Fixed pairs',complement:'Complementary pairs',random:'Random pairs'}[meet.fmt];
+  const live=meet.fmt==='mexicano'||meet.fmt==='kings';
+  const pts=meetPoints();
+  const board=Object.entries(pts).sort((a,b)=>b[1]-a[1]);
+  let h=`<div class="sh"><h2>Court sheet</h2>
+    ${live?'<button class="lk" id="mexNext">Next round</button>':`<span class="note">${names}</span>`}</div>
+    <p class="note" style="margin:-4px 0 12px">${names} &middot; ${slotName(meet.slot)} &middot; ${meet.desks} desk${meet.desks>1?'s':''} &middot; first to ${meet.target}${meet.rated===false?' &middot; <b style="color:var(--gold)">unrated</b>':''}</p>`;
+
+  h+=meet.rounds.map((r,ri)=>`
+    <div class="round ${r.done?'done':''}">
+      <div class="rhead"><h3>Round ${ri+1}</h3>
+        ${r.done?'<span class="dchip up">Saved</span>':''}
+        <span class="sit">${r.bench.length?'Sitting out <b>'+r.bench.map(id=>esc(shortName(id))).join(', ')+'</b>':'everybody plays'}</span></div>
+      ${r.games.map((g,gi)=>`
+        <div class="fixr">
+          <div class="desknum">${meet.fmt==='kings'?(gi===0?'King’s desk':'Desk '+(gi+1)):'Desk '+(gi+1)}</div>
+          <div class="pn">${esc(pairName(g.a))}</div>
+          <div class="mid">
+            <input type="number" inputmode="numeric" min="0" value="${g.sa}" placeholder="${meet.target}" data-mr="${ri}" data-mg="${gi}" data-ms="a" ${r.done?'disabled':''}>
+            <span class="dash">:</span>
+            <input type="number" inputmode="numeric" min="0" value="${g.sb}" placeholder="${meet.target}" data-mr="${ri}" data-mg="${gi}" data-ms="b" ${r.done?'disabled':''}>
+          </div>
+          <div class="pn b">${esc(pairName(g.b))}</div>
+        </div>`).join('')}
+      <div style="margin-top:12px">
+        ${r.done?`<button class="btn sec sm" data-unlock="${ri}">Reopen round</button>`
+                :`<button class="btn" data-lock="${ri}">Save round ${ri+1}</button>`}
+      </div>
+    </div>`).join('');
+
+  if(board.length){
+    h+=`<div class="sh"><h2>Meet standings</h2><span class="note">points won</span></div><div class="rows">`+
+      board.map(([id,p],i)=>`<button class="r ${i===0?'first':''}" data-player="${id}">
+        <span class="rk">${i+1}</span>${avatar(id)}
+        <span class="rm"><span class="rn">${esc(nameOf(id))}</span></span>
+        <span class="rv"><span class="rnum">${p}</span></span></button>`).join('')+'</div>';
+  }
+  host.innerHTML=h;
+}
+function updateMeetHint(){
+  const n=selectedFrom($('#meetPicks')).length;
+  const desks=clamp(+$('#meetDesks').value||1,1,12);
+  const courts=Math.min(desks,Math.floor(n/4));
+  const el=$('#meetHint');
+  if(n<4){el.textContent='Tick at least four players to draw a meet.';return;}
+  const sitting=n-courts*4;
+  el.innerHTML=`${n} players across <b style="color:var(--tx)">${courts}</b> desk${courts>1?'s':''} &mdash; ${sitting?`<b style="color:var(--gold)">${sitting}</b> sit out each round, rotated evenly`:'nobody sits out'}.`;
+}
+
+/* ----------------------------------------------------------------- CUP */
+function renderCup(){
+  const host=$('#cupOut');
+  if(!cup){host.innerHTML='';return;}
+  const tn=t=>t?pairName(t.p):'Bye';
+  let h=`<div class="sh"><h2>${esc(cup.name)}</h2><span class="note">${cup.teams.length} pairs</span></div>`;
+  if(cup.odd)h+=`<p class="note" style="margin-bottom:11px"><b style="color:var(--gold)">${esc(nameOf(cup.odd))}</b> is unpaired &mdash; odd number of entrants. Add or drop one player and redraw.</p>`;
+
+  if(cup.format==='knockout'){
+    const rounds=bracketRounds();
+    const champ=rounds[rounds.length-1][0].winner;
+    const teamRow=(t,sc,won,key,side,bye)=>{
+      if(!t)return '<div class="bt bye"><span class="sd"></span><span class="nx">Bye</span></div>';
+      return `<div class="bt ${won?'won':''}"><span class="sd">${t.seed}</span><span class="nx">${esc(tn(t))}</span>
+        ${bye?'<span class="sd">&mdash;</span>':`<input type="number" inputmode="numeric" min="0" value="${sc||''}" data-ck="${key}" data-cs="${side}">`}</div>`;
+    };
+    h+='<div class="bracket">'+rounds.map((ms,ri)=>`<div class="bcol"><h4>${roundLabel(ri,rounds.length)}</h4>`+
+      ms.map(m=>{
+        const live=!m.bye&&m.t[0]&&m.t[1]&&!m.winner;
+        return `<div class="bm ${live?'live':''}">
+          ${teamRow(m.t[0],m.res?m.res.sa:'',m.winner&&m.winner===m.t[0],m.key,'a',m.bye)}
+          ${teamRow(m.t[1],m.res?m.res.sb:'',m.winner&&m.winner===m.t[1],m.key,'b',m.bye)}</div>`;
+      }).join('')+'</div>').join('')+'</div>';
+    if(champ)h+=`<div class="champ"><div class="k">Cup winners</div><div class="v">${esc(tn(champ))}</div></div>`;
+    h+=`<p class="note" style="margin-top:12px">Swipe the bracket sideways. Type both scores into a tie to advance the winner.</p>
+        <div style="margin-top:10px"><button class="btn sec sm" id="cupCommit">Add played ties to the ladder</button></div>`;
+  }else{
+    const T=cup.teams, rec={};
+    T.forEach(t=>rec[t.id]={t,w:0,l:0,pf:0,pa:0});
+    const fixtures=[];
+    for(let i=0;i<T.length;i++)for(let j=i+1;j<T.length;j++){
+      const key=`g${i}_${j}`,res=cup.results[key];
+      fixtures.push({key,a:T[i],b:T[j],res});
+      if(res&&res.sa!==''&&res.sb!==''){
+        rec[T[i].id].pf+=+res.sa;rec[T[i].id].pa+=+res.sb;
+        rec[T[j].id].pf+=+res.sb;rec[T[j].id].pa+=+res.sa;
+        if(+res.sa>+res.sb){rec[T[i].id].w++;rec[T[j].id].l++;}
+        else if(+res.sb>+res.sa){rec[T[j].id].w++;rec[T[i].id].l++;}
+      }
+    }
+    const table=Object.values(rec).sort((a,b)=>b.w-a.w||(b.pf-b.pa)-(a.pf-a.pa)||b.pf-a.pf);
+    h+='<div class="rows">'+table.map((r,i)=>`<div class="r static ${i===0&&r.w>0?'first':''}">
+      <span class="rk">${i+1}</span>
+      <span class="rm"><span class="rn" style="font-size:13.5px">${esc(tn(r.t))}</span>
+        <span class="rs">seed ${r.t.seed} &middot; ${r.w}W ${r.l}L</span></span>
+      <span class="rv"><span class="rnum">${sgn(r.pf-r.pa)}</span><span class="note">diff</span></span></div>`).join('')+'</div>';
+    h+=`<div class="sh"><h2>Fixtures</h2><span class="note">${fixtures.length} ties</span></div>`;
+    h+='<div class="round">'+fixtures.map((f,i)=>`<div class="fixr" ${i===0?'style="border-top:0"':''}>
+        <div class="pn">${esc(tn(f.a))}</div>
+        <div class="mid">
+          <input type="number" inputmode="numeric" min="0" value="${f.res?f.res.sa:''}" data-ck="${f.key}" data-cs="a">
+          <span class="dash">:</span>
+          <input type="number" inputmode="numeric" min="0" value="${f.res?f.res.sb:''}" data-ck="${f.key}" data-cs="b">
+        </div>
+        <div class="pn b">${esc(tn(f.b))}</div></div>`).join('')+'</div>';
+    h+=`<div style="margin-top:12px"><button class="btn sec sm" id="cupCommit">Add played ties to the ladder</button></div>`;
+  }
+  host.innerHTML=h;
+}
+
+/* -------------------------------------------------------------- LEAGUE */
+function renderLeague(){
+  const sp=$('#seasonPick');
+  sp.innerHTML=S.seasons.map(s=>`<option value="${s.id}"${s.id===S.season?' selected':''}>${esc(s.name)}</option>`).join('');
+  const prev=ladderScope;ladderScope='all';refreshStats();ladderScope=prev;
+  const st=S.settings;
+  const rows=Object.values(STATS).filter(s=>s.seasonGames>0)
+    .sort((a,b)=>b.pts-a.pts||b.seasonW-a.seasonW||(b.pf-b.pa)-(a.pf-a.pa));
+  const sn=S.seasons.find(s=>s.id===S.season);
+  $('#leagueTitle').textContent=(sn?sn.name:'Season');
+  const n=S.matches.filter(m=>m.season===S.season).length;
+  $('#leagueNote').textContent=`${n} match${n===1?'':'es'} · ${st.ptsWin} for a win, ${st.ptsLoss} for a loss`;
+  $('#standTbl').innerHTML = rows.length ? rows.map((s,i)=>`
+    <button class="r ${i===0?'first':''}" data-player="${s.id}">
+      <span class="rk">${i+1}</span>${avatar(s.id)}
+      <span class="rm"><span class="rn">${esc(s.name)}</span>
+        <span class="rs">${s.seasonGames} played &middot; ${s.seasonW}W ${s.seasonL}L &middot; DBR ${Math.round(s.rating)}</span></span>
+      <span class="rv"><span class="rnum">${s.pts}</span>${formHtml(s.form)}</span></button>`).join('')
+    : '<div class="card"><div class="empty">No matches played in this season yet.</div></div>';
+  $('#ptsWin').value=st.ptsWin;$('#ptsLoss').value=st.ptsLoss;$('#ptsBonus').value=st.ptsBonus;
+  $('#regressEcho').textContent=$('#regress').value+'%';
+  const seeded=st.seedFromSkill;
+  $('#regressWrap').hidden=seeded;
+  $('#seasonNote').innerHTML=seeded
+    ? `Everyone's DBR resets to their <b style="color:var(--tx)">skill index &times; ${st.seedMult}</b> as it stands the day you start it &mdash; so the admin's ratings set the opening order and results take over from there. Nothing is deleted: every match stays in the log.`
+    : `Everyone is pulled partway back towards ${st.base}. Nothing is deleted: every match stays in the log.`;
+}
+
+/* --------------------------------------------------------------- SETUP */
+
+
+function renderAdminSetup(){
+  const n=inbox();
+  $('#adminPanel').innerHTML = isAdmin()
+    ? `<div class="card">
+        <div style="display:flex;align-items:center;gap:11px">
+          ${avatarName('Club Admin')}
+          <span class="rm"><span class="rn">Club admin</span><span class="rs">signed in on this device</span></span>
+          <button class="btn sec xs" data-go="account">Account</button>
+        </div>
+        <div style="margin-top:12px"><button class="btn ${n?'':'sec'}" data-go="approve">
+          ${n?`Review ${n} request${n===1?'':'s'}`:'No requests waiting'}</button></div>
+      </div>`
+    : `<div class="card">
+        <p class="note" style="margin-bottom:12px">Sign in as the admin to file ratings, approve new players and handle skill requests. Everything else here is open to everyone.</p>
+        <button class="btn" data-go="account">Sign in</button>
+      </div>`;
+}
+function renderSetup(){
+  const st=S.settings;
+  renderAdminSetup();
+  $('#setBase').value=st.base;$('#setProv').value=st.prov;$('#setK').value=st.k;
+  $('#setCarry').value=st.carry;$('#setMov').checked=st.mov;
+  $('#setTarget').value=st.target;$('#setTies').checked=st.ties;
+  $('#setSkillMax').value=st.skillMax;
+  $('#setSwing').value=st.maxSwing;
+  $('#swingEcho').textContent=st.maxSwing>0?st.maxSwing+' points':'no ceiling';
+  $('#setSeed').checked=st.seedFromSkill;
+  $('#setSeedMult').value=st.seedMult;$('#seedEcho').textContent=st.seedMult;
+  $('#seedExample').innerHTML=st.seedFromSkill
+    ? `A skill index of 8.0 starts the season on <b style="color:var(--tx)">${Math.round(8*st.seedMult)}</b>; 5.0 starts on <b style="color:var(--tx)">${Math.round(5*st.seedMult)}</b>. Anyone with no card yet starts at the middle of the scale, <b style="color:var(--tx)">${Math.round(st.skillMax/2*st.seedMult)}</b>.`
+    : `Switched off &mdash; everyone starts each season on ${st.base} instead.`;
+  const th=document.documentElement.getAttribute('data-theme')||'light';
+  $$('#themeSeg button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.theme===th)));
+  $('#kEcho').textContent=st.k;
+  $('#carryEcho').textContent=st.carry===0?'off (equal split)':st.carry+'%';
+  const prev=ladderScope;ladderScope='all';refreshStats();ladderScope=prev;
+  $('#rosterTbl').innerHTML = S.players.length ? S.players.map(p=>{
+    const s=STATS[p.id]||{rating:st.base,games:0};
+    return `<div class="r static">${avatar(p.id)}
+      <span class="rm"><input type="text" value="${esc(p.name)}" data-rename="${p.id}"
+        style="background:none;border:0;padding:0;font-weight:700;font-size:14.5px">
+        <span class="rs">DBR ${Math.round(s.rating)} &middot; ${s.games} played</span></span>
+      <button class="btn ${p.active===false?'warn':'sec'} xs" data-toggle="${p.id}">${p.active===false?'Out':'Active'}</button>
+      <button class="btn warn xs" data-drop="${p.id}">&times;</button></div>`;}).join('')
+    : '<div class="card"><div class="empty">Nobody on the roster yet.</div></div>';
+  $('#rosterNote').textContent=`${S.players.length} player${S.players.length===1?'':'s'} · ${S.players.filter(p=>p.active!==false).length} active`;
+}
+
+/* ---------------------------------------------------------------- MORE */
+function renderMore(){
+  const sn=S.seasons.find(s=>s.id===S.season);
+  $('#chipSeason').textContent=sn?sn.name:'—';
+  $('#chipCount').textContent=S.players.length;
+  const n=inbox();
+  $('#moreMenu').innerHTML=[
+    ['account','Your account','users', isAdmin()?'signed in as club admin':(myAccount()?'signed in as '+myAccount().name:'sign in or register')],
+    ...(isAdmin()?[['approve','Requests','inbox', n?`${n} waiting for you`:'nothing waiting']]:[]),
+    ['skills','Skill profiles','star',`${S.ratings.length} card${S.ratings.length===1?'':'s'} filed`],
+    ['cup','Cup draw','cup','knockout & round robin brackets'],
+    ['league','League table','table',`${S.matches.filter(m=>m.season===S.season).length} matches this season`],
+    ['meet','Meet builder','cal','rotations, desks and sit-outs'],
+    ['setup','Setup','gear','roster, rating rules and data']
+  ].map(([v,t,ic,sub])=>`<button class="r" data-go="${v}">
+      <span class="av" style="background:var(--card3)"><svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:var(--vio2);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round">${ICON[ic]}</svg></span>
+      <span class="rm"><span class="rn">${t}</span><span class="rs">${sub}</span></span>
+      <span class="rv"><svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:var(--dim2);stroke-width:2;stroke-linecap:round"><path d="m9 5 7 7-7 7"/></svg></span>
+    </button>`).join('');
+}
+
+/* --------------------------------------------------------------- shell */
+function animateDonuts(){
+  requestAnimationFrame(()=>{
+    $$('.donut .val[data-dash]').forEach(el=>{
+      el.setAttribute('stroke-dasharray',el.dataset.dash);
+      el.removeAttribute('data-dash');
+    });
+  });
+}
+function renderChrome(){
+  const b=$('#demoBanner');
+  if(S.demo){
+    b.hidden=false;
+    b.innerHTML=`<div class="banner"><div><b>Sample league</b>
+      Eight made-up players so you can see how it all works. Clear it before you enter your own.</div>
+      <button class="btn xs sec" id="clearDemo" style="flex:0 0 auto">Clear</button></div>`;
+  }else b.hidden=true;
+}
+function renderAll(){
+  renderChrome();
+  if(activeTab==='home')renderHome();
+  if(activeTab==='ladder')renderLadder();
+  if(activeTab==='player'&&drawerPlayer)openDrawer(drawerPlayer);
+  if(activeTab==='record')renderRecord();
+  if(activeTab==='skills')renderSkills();
+  if(activeTab==='meet'){renderPicks($('#meetPicks'),$('#meetCount'));fillRefSelects();renderMeet();updateMeetHint();}
+  if(activeTab==='cup'){renderPicks($('#cupPicks'),$('#cupCount'));renderCup();}
+  if(activeTab==='league')renderLeague();
+  if(activeTab==='setup')renderSetup();
+  if(activeTab==='more')renderMore();
+  if(activeTab==='account')renderAccount();
+  if(activeTab==='approve')renderApprovals();
+  animateDonuts();
+}
+const ROOTS=['home','ladder','record','meet','more'];
+let navStack=[];
+function go(v,push){
+  if(push!==false&&activeTab&&activeTab!==v)navStack.push(activeTab);
+  if(ROOTS.includes(v))navStack=[];
+  activeTab=v;
+  $$('.view').forEach(p=>p.hidden = p.id!=='v-'+v);
+  $$('#tabs .tb').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===v)));
+  renderAll();
+  window.scrollTo(0,0);
+}
+function back(){
+  const prev=navStack.pop();
+  go(prev||'home',false);
+}
+
+
+/* ==================================================== the first-run tour */
+let introStep=0, loginMode='player';
+const TOUR=[
+  {
+    art:`<div class="slideart">
+      <svg viewBox="0 0 220 130" width="200" aria-hidden="true">
+        <rect x="14" y="26" width="192" height="86" rx="14" fill="rgba(255,255,255,.16)" stroke="rgba(255,255,255,.5)" stroke-width="2"/>
+        <line x1="110" y1="26" x2="110" y2="112" stroke="rgba(255,255,255,.65)" stroke-width="2" stroke-dasharray="6 6"/>
+        <circle cx="70" cy="60" r="9" fill="#fff"/>
+        <circle cx="152" cy="84" r="9" fill="rgba(255,255,255,.55)"/>
+        <path d="M40 100h34M146 44h34" stroke="rgba(255,255,255,.45)" stroke-width="3" stroke-linecap="round"/>
+      </svg></div>`,
+    h:'Welcome to the Federation',
+    p:'Everything your deskball club needs in one place: who is best, who plays who, and what happens next. Doubles only, because that is how deskball is played.'
+  },
+  {
+    art:`<div class="slideart plain"><div style="width:82%">
+      <div class="r static" style="margin-bottom:8px;cursor:default">
+        <span class="rk">1</span><span class="av sm">MO</span>
+        <span class="rm"><span class="rn" style="font-size:13px">Mei Okonkwo</span>
+          <span class="rs">20 played &middot; 15W 5L</span></span>
+        <span class="rv"><span class="rnum" style="font-size:15px">883</span><span class="dchip up">+18</span></span>
+      </div>
+      <div class="r static" style="cursor:default">
+        <span class="rk">2</span><span class="av sm">RA</span>
+        <span class="rm"><span class="rn" style="font-size:13px">Ravi Anand</span>
+          <span class="rs">18 played &middot; 12W 6L</span></span>
+        <span class="rv"><span class="rnum" style="font-size:15px">844</span><span class="dchip down">&minus;9</span></span>
+      </div></div></div>`,
+    h:'The ladder ranks results',
+    p:'Every player carries a <b>DBR</b>. It opens each season at your skill rating &times; 100, then moves only when you win or lose &mdash; beat a stronger pair and you take a lot; beating a weaker one barely counts.'
+  },
+  {
+    art:`<div class="slideart plain"><div style="width:78%">
+      <div class="sl"><span class="nm">Spike</span><span class="sbar">${'<i class="on"></i>'.repeat(8)}${'<i></i>'.repeat(2)}</span><span class="vv">8.0</span></div>
+      <div class="sl"><span class="nm">Serve</span><span class="sbar">${'<i class="on"></i>'.repeat(6)}${'<i></i>'.repeat(4)}</span><span class="vv">6.0</span></div>
+      <div class="sl"><span class="nm">Set</span><span class="sbar">${'<i class="on"></i>'.repeat(9)}${'<i></i>'.repeat(1)}</span><span class="vv">9.0</span></div>
+      <div class="sl"><span class="nm">Receive</span><span class="sbar">${'<i class="on"></i>'.repeat(5)}${'<i></i>'.repeat(5)}</span><span class="vv">5.0</span></div>
+    </div></div>`,
+    h:'Five skills, out of ten',
+    p:'Spiking, serving, setting, receiving and placement. Only the <b>club admin</b> files rating cards &mdash; everyone else can read every profile and ask for an update, which the admin approves or turns down.'
+  },
+  {
+    art:`<div class="slideart plain"><div style="width:84%">
+      <div class="desknum" style="text-align:left;margin-bottom:6px">King&rsquo;s desk</div>
+      <div class="fixr" style="border-top:0;padding-top:0">
+        <div class="pn">Mei O. + Sam L.</div>
+        <div class="mid"><span class="dchip flat" style="font-size:12px">11</span><span class="dash">:</span><span class="dchip flat" style="font-size:12px">7</span></div>
+        <div class="pn b">Ravi A. + Priya N.</div>
+      </div>
+      <div class="desknum" style="text-align:left;margin:8px 0 6px">Desk 2</div>
+      <div class="fixr" style="border-top:0;padding-top:0">
+        <div class="pn">Aisha R. + Nkechi O.</div>
+        <div class="mid"><span class="dchip flat" style="font-size:12px">9</span><span class="dash">:</span><span class="dchip flat" style="font-size:12px">11</span></div>
+        <div class="pn b">Jonas W. + Tom&aacute;s F.</div>
+      </div></div></div>`,
+    h:'Meets draw themselves',
+    p:'Tick who turned up at snack break, lunch or after school. Pick <b>Americano</b>, <b>Mexicano</b>, <b>King&rsquo;s Court</b>, fixed or complementary pairs and it writes every round &mdash; partners, desks, referee and fair sit-outs.'
+  },
+  {
+    art:`<div class="slideart plain"><div style="display:flex;gap:10px;align-items:center;width:84%">
+      <div style="flex:1;display:grid;gap:8px">
+        <div class="bm"><div class="bt won"><span class="sd">1</span><span class="nx">Mei + Sam</span></div>
+          <div class="bt"><span class="sd">4</span><span class="nx">Jonas + Priya</span></div></div>
+        <div class="bm"><div class="bt"><span class="sd">3</span><span class="nx">Aisha + Tom&aacute;s</span></div>
+          <div class="bt won"><span class="sd">2</span><span class="nx">Ravi + Nkechi</span></div></div>
+      </div>
+      <svg width="18" height="60" aria-hidden="true"><path d="M2 12h8v36h-8M10 30h6" stroke="var(--stroke2)" stroke-width="2" fill="none"/></svg>
+      <div class="bm" style="flex:0 0 96px"><div class="bt won"><span class="nx">Mei + Sam</span></div>
+        <div class="bt"><span class="nx">Ravi + Nkechi</span></div></div>
+    </div></div>`,
+    h:'Cups and a season table',
+    p:'Seed a knockout by combined rating so the best pairs only meet in the final, or run a round robin. The <b>league</b> keeps a separate table where points come from turning up, not just winning.'
+  },
+  {
+    art:`<div class="slideart">
+      <svg viewBox="0 0 200 120" width="180" aria-hidden="true">
+        <circle cx="70" cy="52" r="21" fill="rgba(255,255,255,.9)"/>
+        <path d="M40 96a30 30 0 0 1 60 0" fill="rgba(255,255,255,.9)"/>
+        <circle cx="132" cy="58" r="15" fill="rgba(255,255,255,.45)"/>
+        <path d="M111 94a21 21 0 0 1 42 0" fill="rgba(255,255,255,.45)"/>
+      </svg></div>`,
+    h:'Who are you?',
+    p:'The admin files ratings and approves people. Everyone else gets their own sign-in to follow the ladder and ask for skill updates.',
+    roles:true
+  }
+];
+function openIntro(){introStep=0;$('#intro').hidden=false;renderIntro();}
+function closeIntro(){
+  $('#intro').hidden=true;
+  try{localStorage.setItem('deskball.tour','done');}catch(e){}
+}
+function renderIntro(){
+  const s=TOUR[introStep], last=introStep===TOUR.length-1;
+  $('#introSlides').innerHTML=`${s.art}
+    <div class="slidebody"><h2>${s.h}</h2><p>${s.p}</p>
+      ${s.roles?`<div class="roles">
+        <button class="btn" data-role="player">I&rsquo;m a player &mdash; sign in</button>
+        <button class="btn sec" data-role="new">New here &mdash; register</button>
+        <button class="btn sec" data-role="admin">I&rsquo;m the club admin</button>
+        <button class="btn sec" data-role="look" style="background:none;border-color:transparent;color:var(--dim2)">Just have a look round</button>
+      </div>`:''}
+    </div>`;
+  $('#introDots').innerHTML=TOUR.map((x,i)=>`<i class="${i===introStep?'on':''}"></i>`).join('');
+  $('#introBack').hidden=introStep===0;
+  $('#introNext').hidden=last;
+  $('#introSkip').textContent=last?'Close':'Skip';
+  $('#introSlides').scrollTop=0;
+  animateDonuts();
+}
+
+/* =============================================================== events */
+/* ------------------------------------------------- accounts & requests */
+function currentRequest(){
+  const o={};SKILLS.forEach(s=>{const el=$('#rq_'+s.k);o[s.k]=el?+el.value:0;});return o;
+}
+function approveAccount(id){
+  const a=S.accounts.find(x=>x.id===id);if(!a)return;
+  if(!a.playerId){
+    const existing=S.players.find(p=>p.name.toLowerCase()===a.name.toLowerCase());
+    if(existing)a.playerId=existing.id;
+    else{const p={id:uid(),name:a.name,active:true,joined:Date.now()};S.players.push(p);a.playerId=p.id;}
+  }
+  a.status='active';
+  $('#meetPicks')._sel=null;$('#cupPicks')._sel=null;
+  save();renderAll();toast(`${a.name} approved — they can sign in now.`);
+}
+function approveRequest(id){
+  const r=S.requests.find(x=>x.id===id);if(!r)return;
+  if(!r.playerId){toast('That request is not linked to a player.');return;}
+  const card={id:uid(),player:r.playerId,rater:adminNameFor(),ts:Date.now(),
+    note:r.note?`approved request: ${r.note}`:'approved request',...r.values};
+  S.ratings.push(card);
+  r.status='approved';r.decided=Date.now();
+  save();renderAll();toast(`${r.name}'s new profile is live.`);
+}
+const adminNameFor=()=>'Club admin';
+
+$('#v-account').addEventListener('input',e=>{
+  if(e.target.dataset.rq!==undefined){
+    const b=$('#rc_'+e.target.dataset.rq);if(b)b.textContent=e.target.value;
+  }
+});
+$('#v-account').addEventListener('click',async e=>{
+  const id0=e.target.id;
+  if(cloudWanted()){
+    if(id0==='cSignUp'){
+      const nm=($('#cName').value||'').trim(), em=($('#cEmail').value||'').trim(), pw=$('#cPass').value||'';
+      if(!nm||!em||pw.length<6){toast('Name, email and a password of at least six characters.');return;}
+      const {error}=await sb.auth.signUp({email:em,password:pw,options:{data:{name:nm}}});
+      toast(error?error.message:'Account created — the admin will add you to the roster.');
+      if(!error)renderAccount();
+      return;
+    }
+    if(id0==='cSignIn'){
+      const em=($('#cEmail2').value||'').trim(), pw=$('#cPass2').value||'';
+      const {error}=await sb.auth.signInWithPassword({email:em,password:pw});
+      toast(error?error.message:'Signed in.');
+      return;
+    }
+    if(id0==='cSignOut'){ await sb.auth.signOut(); toast('Signed out.'); return; }
+    if(id0==='cSendReq'){
+      const vals=currentRequest();
+      if(await cloudSubmitSkill(vals,($('#reqNote').value||'').trim()))toast('Request sent to the admin.');
+      return;
+    }
+    const m=e.target.closest('#loginMode button');
+    if(m){loginMode=m.dataset.mode;renderCloudLogin($('#accountBody'));return;}
+  }
+  const mode=e.target.closest('#loginMode button');
+  if(mode){
+    loginMode=mode.dataset.mode;
+    $$('#loginMode button').forEach(b=>b.setAttribute('aria-pressed',String(b===mode)));
+    renderLoginBody(loginMode);return;
+  }
+  const id=e.target.id;
+  if(id==='signOutBtn'){signOut();go('home');toast('Signed out.');return;}
+  if(id==='admGo'){
+    const u=($('#admUser').value||'').trim(), p=($('#admPass').value||'');
+    if(u.toUpperCase()!==ADMIN_USER||p!==ADMIN_PASS){toast('That username and password do not match.');return;}
+    session={kind:'admin'};saveSession();renderAccount();
+    toast('Signed in as club admin.');return;
+  }
+  if(id==='logGo'){
+    const a=S.accounts.find(x=>x.id===$('#logWho').value);
+    if(!a){toast('Pick your name first.');return;}
+    if(hashPin($('#logPin').value)!==a.pinHash){toast('That PIN does not match.');$('#logPin').select();return;}
+    session={kind:'player',id:a.id};saveSession();renderAccount();
+    toast(`Hello ${a.name.split(' ')[0]}.`);return;
+  }
+  if(id==='regGo'){
+    const nm=($('#regName').value||'').trim();
+    const p1=($('#regPin').value||'').trim(), p2=($('#regPin2').value||'').trim();
+    const link=$('#regLink').value||null;
+    if(!nm){toast('Put your name in first.');return;}
+    if(S.accounts.some(a=>a.name.toLowerCase()===nm.toLowerCase())){toast('Somebody already registered with that name.');return;}
+    if(p1.length<4){toast('Use a PIN of at least four digits.');return;}
+    if(p1!==p2){toast('The two PINs do not match.');return;}
+    const acc={id:uid(),name:nm,playerId:link,pinHash:hashPin(p1),status:'pending',created:Date.now()};
+    S.accounts.push(acc);save();
+    const code=encodeReq({t:'join',name:nm,playerId:link,pinHash:acc.pinHash,ts:acc.created});
+    $('#loginBody').innerHTML=`<div class="card">
+      <div style="font-weight:800;font-size:15px">Sent to the admin</div>
+      <p class="note" style="margin-top:7px">You can sign in as soon as they approve you.</p>
+      <p class="note" style="margin-top:11px">If the admin uses a different phone, send them this code:</p>
+      <textarea readonly style="min-height:64px;margin-top:7px">${esc(code)}</textarea>
+      <div style="margin-top:9px"><button class="btn sec sm" data-copy="${esc(code)}">Copy the code</button></div></div>`;
+    toast('Registered — waiting for the admin.');return;
+  }
+  if(id==='sendReq'){
+    const me=myAccount();if(!me)return;
+    const values=currentRequest();
+    const req={id:uid(),type:'skill',accountId:me.id,playerId:me.playerId,name:me.name,
+      values,note:($('#reqNote').value||'').trim(),ts:Date.now(),status:'pending'};
+    S.requests.push(req);save();
+    const code=encodeReq({t:'skill',name:me.name,playerId:me.playerId,values,note:req.note,ts:req.ts});
+    renderAccount();
+    setTimeout(()=>{
+      const box=document.createElement('div');
+      box.className='card';box.style.marginTop='12px';
+      box.innerHTML=`<div style="font-weight:800;font-size:14px">Sent to the admin</div>
+        <p class="note" style="margin-top:9px">If they use a different phone, send them this code:</p>
+        <textarea readonly style="min-height:64px;margin-top:7px">${esc(code)}</textarea>
+        <div style="margin-top:9px"><button class="btn sec sm" data-copy="${esc(code)}">Copy the code</button></div>`;
+      const anchor=$('#accountBody .card');if(anchor)anchor.after(box);
+    },0);
+    toast('Request sent to the admin.');return;
+  }
+  const cp=e.target.closest('[data-copy]');
+  if(cp){navigator.clipboard?.writeText(cp.dataset.copy).then(
+    ()=>toast('Code copied — send it to the admin.'),()=>toast('Copy failed — select the text instead.'));}
+});
+$('#v-account').addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(e.target.id==='logPin')$('#logGo').click();
+  if(e.target.id==='admPass')$('#admGo').click();
+  if(e.target.id==='regPin2')$('#regGo').click();
+});
+
+$('#v-approve').addEventListener('click',async e=>{
+  const cj=e.target.closest('[data-cjoin]');
+  if(cj){
+    const r=cloudRequests.find(x=>String(x.id)===cj.dataset.cjoin);
+    const nm=(r&&r.payload&&r.payload.name)||'New player';
+    let p=S.players.find(x=>x.name.toLowerCase()===nm.toLowerCase());
+    if(!p){p={id:uid(),name:nm,active:true,joined:Date.now()};S.players.push(p);}
+    if(!S.links)S.links={};
+    S.links[cj.dataset.uid]=p.id;
+    save(); await cloudSetRequest(cj.dataset.cjoin,'approved');
+    renderAll(); toast(nm+' added to the roster.');
+    return;
+  }
+  const cs=e.target.closest('[data-cskill]');
+  if(cs){
+    const r=cloudRequests.find(x=>String(x.id)===cs.dataset.cskill);
+    if(r&&r.payload&&r.payload.playerId){
+      const card={id:uid(),player:r.payload.playerId,rater:'Club admin',ts:Date.now(),
+        note:r.payload.note?'approved request: '+r.payload.note:'approved request',...r.payload.values};
+      S.ratings.push(card); save();
+    }
+    await cloudSetRequest(cs.dataset.cskill,'approved');
+    renderAll(); toast('Profile updated.');
+    return;
+  }
+  const cn=e.target.closest('[data-cno]');
+  if(cn){ await cloudSetRequest(cn.dataset.cno,'declined'); renderAll(); toast('Declined.'); return; }
+  const ok=e.target.closest('[data-approve-acc]');
+  if(ok){approveAccount(ok.dataset.approveAcc);return;}
+  const no=e.target.closest('[data-decline-acc]');
+  if(no){const a=S.accounts.find(x=>x.id===no.dataset.declineAcc);
+    if(a&&confirm(`Turn down ${a.name}'s registration?`)){
+      S.accounts=S.accounts.filter(x=>x.id!==a.id);save();renderAll();toast('Registration declined.');}
+    return;}
+  const okr=e.target.closest('[data-approve-req]');
+  if(okr){approveRequest(okr.dataset.approveReq);return;}
+  const nor=e.target.closest('[data-decline-req]');
+  if(nor){const r=S.requests.find(x=>x.id===nor.dataset.declineReq);
+    if(r){r.status='declined';r.decided=Date.now();save();renderAll();toast('Request declined.');}
+    return;}
+  if(e.target.id==='codeGo'){
+    let d;
+    try{d=decodeReq($('#codeIn').value);}
+    catch(err){toast('That is not a deskball request code.');return;}
+    if(d.t==='join'){
+      if(S.accounts.some(a=>a.name.toLowerCase()===String(d.name).toLowerCase())){toast('That person already has an account here.');return;}
+      S.accounts.push({id:uid(),name:d.name,playerId:d.playerId||null,pinHash:d.pinHash,status:'pending',created:d.ts||Date.now()});
+      save();renderApprovals();toast(`${d.name} added to the waiting list.`);
+    }else if(d.t==='skill'){
+      let pid=d.playerId;
+      if(!pid||!byId(pid)){const p=S.players.find(x=>x.name.toLowerCase()===String(d.name).toLowerCase());pid=p?p.id:null;}
+      if(!pid){toast(`${d.name} is not on the roster — add them first.`);return;}
+      S.requests.push({id:uid(),type:'skill',accountId:null,playerId:pid,name:d.name,
+        values:d.values,note:d.note||'',ts:d.ts||Date.now(),status:'pending'});
+      save();renderApprovals();toast('Request added below.');
+    }else toast('Unknown code type.');
+    $('#codeIn').value='';
+  }
+});
+
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('.tb');if(b)go(b.dataset.tab);});
+$('#introNext').addEventListener('click',()=>{if(introStep<TOUR.length-1){introStep++;renderIntro();}});
+$('#introBack').addEventListener('click',()=>{if(introStep>0){introStep--;renderIntro();}});
+$('#introSkip').addEventListener('click',closeIntro);
+$('#intro').addEventListener('click',e=>{
+  const r=e.target.closest('[data-role]');if(!r)return;
+  closeIntro();
+  if(r.dataset.role==='look'){go('home');return;}
+  loginMode=r.dataset.role;
+  go('account');
+});
+
+document.addEventListener('click',e=>{
+  const goBtn=e.target.closest('[data-go]');
+  if(goBtn){go(goBtn.dataset.go);return;}
+  if(e.target.closest('[data-back]')){back();return;}
+  const row=e.target.closest('[data-player]');
+  if(row&&!e.target.closest('button.btn,input,select')){drawerPlayer=row.dataset.player;go('player');return;}
+  const rate=e.target.closest('[data-rate]');
+  if(rate){drawerPlayer=rate.dataset.rate;go('skills');$('#rateWho').value=rate.dataset.rate;renderRatePreview();return;}
+  if(e.target.id==='clearDemo'){
+    if(confirm('Clear the sample league and start empty?')){
+      S=blank();meet=null;cup=null;$('#meetPicks')._sel=null;$('#cupPicks')._sel=null;
+      signOut();save();go('setup');toast('Sample cleared — add your players.');}
+  }
+});
+$('#playerRate').addEventListener('click',()=>{
+  if(!drawerPlayer)return;
+  const id=drawerPlayer;go('skills');$('#rateWho').value=id;renderRatePreview();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ROOTS.includes(activeTab))back();});
+
+/* home */
+$('#homeSearch').addEventListener('input',renderHome);
+
+/* ladder */
+$('#ladderScope').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  ladderScope=b.dataset.scope;$$('#ladderScope button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderLadder();});
+$('#ladderSearch').addEventListener('input',renderLadder);
+$('#minGames').addEventListener('input',renderLadder);
+
+/* record */
+$('#v-record').addEventListener('change',e=>{if(e.target.matches('select[data-slot]')){fillRefSelects();renderPredict();}});
+$('#scoreA').addEventListener('input',renderPredict);
+$('#scoreB').addEventListener('input',renderPredict);
+$('#swapPairs').addEventListener('click',()=>{const v=currentPick();
+  const s=recordSlots();s[0].value=v.b0;s[1].value=v.b1;s[2].value=v.a0;s[3].value=v.a1;
+  const a=$('#scoreA').value;$('#scoreA').value=$('#scoreB').value;$('#scoreB').value=a;renderPredict();});
+$('#fillRandom').addEventListener('click',()=>{
+  const pool=activePlayers().map(p=>p.id);
+  if(pool.length<4){toast('You need four active players.');return;}
+  for(let i=pool.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[pool[i],pool[j]]=[pool[j],pool[i]];}
+  recordSlots().forEach((s,i)=>s.value=pool[i]);renderPredict();});
+$('#clearMatch').addEventListener('click',()=>{recordSlots().forEach(s=>s.value='');
+  $('#scoreA').value='';$('#scoreB').value='';renderPredict();});
+$('#saveMatch').addEventListener('click',()=>{
+  const v=currentPick(), ids=[v.a0,v.a1,v.b0,v.b1];
+  if(ids.some(x=>!x)){toast('Pick all four players.');return;}
+  if(new Set(ids).size!==4){toast('A player can only appear once in a match.');return;}
+  const sa=$('#scoreA').value,sb=$('#scoreB').value;
+  if(sa===''||sb===''||isNaN(+sa)||isNaN(+sb)){toast('Enter both scores.');return;}
+  if(+sa===+sb&&!S.settings.ties){toast('Drawn matches are switched off in Setup.');return;}
+  const dv=$('#matchDate').value;
+  if(refNeeded($('#matchRef'))&&!$('#matchRef').value){toast('Pick the referee — it has to be a registered player who is not on court.');return;}
+  S.matches.push({id:uid(),ts:dv?new Date(dv+'T12:00:00').getTime():Date.now(),season:S.season,tag:'match',
+    slot:$('#matchSlot').value, rated:$('#matchRated').checked, ref:$('#matchRef').value||null,
+    a:[v.a0,v.a1],b:[v.b0,v.b1],sa:+sa,sb:+sb});
+  S.demo=false;save();
+  $('#scoreA').value='';$('#scoreB').value='';
+  refreshStats();renderAll();
+  toast(`${+sa>+sb?pairName([v.a0,v.a1]):pairName([v.b0,v.b1])} win — ratings updated.`);
+});
+$('#logTbl').addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;
+  S.matches=S.matches.filter(m=>m.id!==b.dataset.del);save();refreshStats();renderAll();
+  toast('Match deleted — ratings recomputed.');});
+
+/* skills */
+$('#v-skills').addEventListener('input',e=>{if(e.target.dataset.sk!==undefined)renderRatePreview();});
+$('#rateWho').addEventListener('change',renderRatePreview);
+$('#skillSort').addEventListener('change',renderSkills);
+$('#saveRating').addEventListener('click',()=>{
+  if(!isAdmin()){toast(`Only ${adminName()} can file rating cards.`);return;}
+  const pid=$('#rateWho').value;
+  if(!pid){toast('Add a player to the roster first.');return;}
+  const rater = adminNameFor();
+  const card={id:uid(),player:pid,rater,ts:Date.now(),note:($('#rateNoteTxt').value||'').trim(),...currentCard()};
+  S.ratings.push(card);
+  try{localStorage.setItem('deskball.rater',rater);}catch(err){}
+  $('#rateNoteTxt').value='';
+  save();renderSkills();
+  toast(`Card filed for ${nameOf(pid)} — index ${(SKILLS.reduce((a,s)=>a+card[s.k],0)/SKILLS.length).toFixed(1)}.`);
+});
+$('#loadRating').addEventListener('click',()=>{
+  const pid=$('#rateWho').value;
+  const rater=adminNameFor().toLowerCase();
+  const mine=S.ratings.filter(r=>r.player===pid&&(r.rater||'').trim().toLowerCase()===rater).sort((a,b)=>b.ts-a.ts)[0];
+  if(!mine){toast('You have not rated this player yet.');return;}
+  SKILLS.forEach(s=>{const el=$('#sk_'+s.k);if(el)el.value=mine[s.k];});
+  $('#rateNoteTxt').value=mine.note||'';
+  renderRatePreview();
+  toast(`Loaded your card from ${fmtDate(mine.ts)} — adjust and save to update it.`);
+});
+$('#cardTbl').addEventListener('click',e=>{const b=e.target.closest('[data-delcard]');if(!b)return;
+  if(!isAdmin()){toast(`Only ${adminName()} can delete cards.`);return;}
+  S.ratings=S.ratings.filter(r=>r.id!==b.dataset.delcard);save();renderSkills();toast('Card deleted.');});
+
+
+/* meet */
+$('#v-meet').addEventListener('click',e=>{
+  const pick=e.target.closest('.pk');
+  if(pick){const cb=pick.querySelector('input'),host=$('#meetPicks');
+    setTimeout(()=>{if(cb.checked)host._sel.add(cb.value);else host._sel.delete(cb.value);
+      pick.dataset.on=cb.checked?1:0;$('#meetCount').textContent=`${host._sel.size} selected`;updateMeetHint();},0);return;}
+  const all=e.target.closest('[data-pickall]');
+  if(all){const host=$('#meetPicks');host._sel=all.dataset.pickall==='1'?new Set(activePlayers().map(p=>p.id)):new Set();
+    renderPicks(host,$('#meetCount'));updateMeetHint();return;}
+  const lock=e.target.closest('[data-lock]');if(lock){lockRound(+lock.dataset.lock);return;}
+  const un=e.target.closest('[data-unlock]');
+  if(un){const ri=+un.dataset.unlock;
+    if(!confirm('Reopen this round? Its results stay in the match log — delete them from Record if you want them gone.'))return;
+    meet.rounds[ri].done=false;renderMeet();return;}
+  if(e.target.id==='mexNext'){
+    if(meet.fmt==='kings'){
+      const last=meet.rounds[meet.rounds.length-1];
+      if(last.games.some(g=>g.sa===''||g.sb===''||+g.sa===+g.sb)){toast('Every desk needs a winner before the next round.');return;}
+      kingsNext();
+    } else mexNext();
+    renderMeet();toast('Next round drawn.');return;}
+});
+$('#v-meet').addEventListener('input',e=>{
+  const i=e.target;
+  if(i.dataset.mr!==undefined&&meet)meet.rounds[+i.dataset.mr].games[+i.dataset.mg][i.dataset.ms==='a'?'sa':'sb']=i.value;
+  if(i.id==='meetDesks')updateMeetHint();
+});
+$('#buildMeet').addEventListener('click',buildMeet);
+$('#clearMeet').addEventListener('click',()=>{meet=null;renderMeet();toast('Meet discarded.');});
+$('#printMeet').addEventListener('click',copyMeet);
+function copyMeet(){
+  if(!meet){toast('Draw a meet first.');return;}
+  const lines=[`DESKBALL MEET — ${new Date(meet.created).toLocaleDateString()}`,`Format: ${meet.fmt} · first to ${meet.target}`,''];
+  meet.rounds.forEach((r,ri)=>{
+    lines.push(`ROUND ${ri+1}`);
+    r.games.forEach((g,gi)=>lines.push(`  Desk ${gi+1}:  ${pairName(g.a)}   vs   ${pairName(g.b)}`));
+    if(r.bench.length)lines.push(`  Sitting out: ${r.bench.map(shortName).join(', ')}`);
+    lines.push('');
+  });
+  navigator.clipboard?.writeText(lines.join('\n')).then(
+    ()=>toast('Court sheet copied.'),()=>toast('Copy failed — your browser blocked it.'));
+}
+
+/* cup */
+$('#v-cup').addEventListener('click',e=>{
+  const pick=e.target.closest('.pk');
+  if(pick){const cb=pick.querySelector('input'),host=$('#cupPicks');
+    setTimeout(()=>{if(cb.checked)host._sel.add(cb.value);else host._sel.delete(cb.value);
+      pick.dataset.on=cb.checked?1:0;$('#cupCount').textContent=`${host._sel.size} selected`;},0);return;}
+  const all=e.target.closest('[data-cupall]');
+  if(all){const host=$('#cupPicks');host._sel=all.dataset.cupall==='1'?new Set(activePlayers().map(p=>p.id)):new Set();
+    renderPicks(host,$('#cupCount'));return;}
+  if(e.target.id==='cupCommit'){commitCup();return;}
+});
+$('#v-cup').addEventListener('input',e=>{
+  const i=e.target;if(i.dataset.ck===undefined||!cup)return;
+  const r=cup.results[i.dataset.ck]||(cup.results[i.dataset.ck]={sa:'',sb:''});
+  r[i.dataset.cs==='a'?'sa':'sb']=i.value;
+  clearTimeout(window.__cupT);
+  window.__cupT=setTimeout(()=>{
+    const f=document.activeElement;
+    const k=f&&f.dataset?f.dataset.ck:null,s=f&&f.dataset?f.dataset.cs:null;
+    renderCup();
+    if(k){const el=document.querySelector(`[data-ck="${k}"][data-cs="${s}"]`);if(el)el.focus();}
+  },550);
+});
+$('#buildCup').addEventListener('click',buildCup);
+$('#clearCup').addEventListener('click',()=>{cup=null;renderCup();toast('Cup discarded.');});
+$('#cupCopy').addEventListener('click',()=>{
+  if(!cup){toast('Make a draw first.');return;}
+  const lines=[cup.name.toUpperCase(),''];
+  cup.teams.forEach(t=>lines.push(`  ${t.seed}. ${pairName(t.p)}`));
+  navigator.clipboard?.writeText(lines.join('\n')).then(()=>toast('Draw copied.'),()=>toast('Copy failed.'));
+});
+
+/* league */
+$('#seasonPick').addEventListener('change',e=>{S.season=e.target.value;save();renderAll();});
+['ptsWin','ptsLoss','ptsBonus'].forEach(id=>$('#'+id).addEventListener('input',e=>{
+  S.settings[id]=Math.max(0,+e.target.value||0);save();renderLeague();}));
+$('#regress').addEventListener('input',()=>{$('#regressEcho').textContent=$('#regress').value+'%';});
+$('#newSeason').addEventListener('click',startSeason);
+
+/* setup */
+$('#addPlayer').addEventListener('click',addPlayer);
+$('#newPlayer').addEventListener('keydown',e=>{if(e.key==='Enter')addPlayer();});
+function addPlayer(){
+  const n=($('#newPlayer').value||'').trim();
+  if(!n){toast('Type a name first.');return;}
+  if(S.players.some(p=>p.name.toLowerCase()===n.toLowerCase())){toast('That name is already on the roster.');return;}
+  S.players.push({id:uid(),name:n,active:true,joined:Date.now()});
+  $('#newPlayer').value='';
+  $('#meetPicks')._sel=null;$('#cupPicks')._sel=null;
+  save();renderAll();toast(`${n} added to the roster.`);
+}
+$('#rosterTbl').addEventListener('click',e=>{
+  const tg=e.target.closest('[data-toggle]');
+  if(tg){const p=byId(tg.dataset.toggle);p.active=p.active===false;save();renderSetup();return;}
+  const dr=e.target.closest('[data-drop]');
+  if(dr){const p=byId(dr.dataset.drop);
+    const n=S.matches.filter(m=>[...m.a,...m.b].includes(p.id)).length;
+    if(!confirm(n?`Remove ${p.name}? Their ${n} match${n===1?'':'es'} will be deleted too and every rating recomputed.`:`Remove ${p.name}?`))return;
+    S.matches=S.matches.filter(m=>![...m.a,...m.b].includes(p.id));
+    S.ratings=S.ratings.filter(r=>r.player!==p.id);
+    S.players=S.players.filter(x=>x.id!==p.id);
+    $('#meetPicks')._sel=null;$('#cupPicks')._sel=null;meet=null;cup=null;
+    save();renderAll();toast(`${p.name} removed.`);}
+});
+$('#rosterTbl').addEventListener('change',e=>{
+  const rn=e.target.closest('[data-rename]');if(!rn)return;
+  const v=rn.value.trim();if(!v){renderSetup();return;}
+  byId(rn.dataset.rename).name=v;save();renderAll();
+});
+$('#setK').addEventListener('input',e=>{S.settings.k=+e.target.value;$('#kEcho').textContent=S.settings.k;save();});
+$('#setK').addEventListener('change',()=>{refreshStats();renderSetup();});
+$('#setCarry').addEventListener('input',e=>{S.settings.carry=+e.target.value;
+  $('#carryEcho').textContent=S.settings.carry===0?'off (equal split)':S.settings.carry+'%';save();});
+$('#setCarry').addEventListener('change',()=>{refreshStats();renderSetup();});
+$('#setMov').addEventListener('change',e=>{S.settings.mov=e.target.checked;save();refreshStats();renderSetup();});
+$('#setTies').addEventListener('change',e=>{S.settings.ties=e.target.checked;save();});
+$('#setBase').addEventListener('change',e=>{S.settings.base=+e.target.value||1000;save();refreshStats();renderSetup();});
+$('#setProv').addEventListener('change',e=>{S.settings.prov=Math.max(0,+e.target.value||0);save();refreshStats();renderSetup();});
+$('#setTarget').addEventListener('change',e=>{S.settings.target=Math.max(1,+e.target.value||21);save();$('#meetTarget').value=S.settings.target;});
+$('#showTour').addEventListener('click',openIntro);
+$('#themeSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  setTheme(b.dataset.theme);
+});
+function setTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  $$('#themeSeg button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.theme===t)));
+  try{localStorage.setItem('deskball.theme',t);}catch(err){}
+}
+$('#setSwing').addEventListener('input',e=>{
+  S.settings.maxSwing=+e.target.value;$('#swingEcho').textContent=S.settings.maxSwing+' points';save();});
+$('#setSwing').addEventListener('change',()=>{refreshStats();renderSetup();});
+$('#setSeed').addEventListener('change',e=>{
+  S.settings.seedFromSkill=e.target.checked;save();refreshStats();renderSetup();
+  toast(e.target.checked?'Seasons now start from the skill profile.':'Seasons now start everyone level.');});
+$('#setSeedMult').addEventListener('input',e=>{
+  S.settings.seedMult=+e.target.value;$('#seedEcho').textContent=S.settings.seedMult;save();});
+$('#setSeedMult').addEventListener('change',()=>{refreshStats();renderSetup();});
+$('#setSkillMax').addEventListener('change',e=>{
+  S.settings.skillMax=clamp(Math.round(+e.target.value||11),3,20);
+  save();renderSetup();toast(`Skills are now rated out of ${S.settings.skillMax}.`);
+});
+
+
+
+/* data */
+let downloads=null;
+if(window.claude&&typeof window.claude.use==='function'){
+  window.claude.use('downloads').then(d=>{downloads=d;}).catch(()=>{});
+}
+$('#exportBtn').addEventListener('click',async()=>{
+  const json=JSON.stringify(S,null,2);
+  const fname=`deskball-league-${new Date().toISOString().slice(0,10)}.json`;
+  if(downloads){
+    try{await downloads.save({filename:fname,data:json});toast('League file saved.');return;}
+    catch(err){if(err&&err.code!=='cancelled')toast('Save was declined — copying instead.');else return;}
+  }
+  try{await navigator.clipboard.writeText(json);toast('League copied to the clipboard.');}
+  catch(err){$('#importArea').hidden=false;$('#importText').value=json;$('#importText').select();
+    toast('Select the text below and copy it.');}
+});
+$('#importBtn').addEventListener('click',()=>{$('#importArea').hidden=false;$('#importText').value='';$('#importText').focus();});
+$('#importCancel').addEventListener('click',()=>{$('#importArea').hidden=true;});
+$('#importGo').addEventListener('click',()=>{
+  try{
+    const d=JSON.parse($('#importText').value);
+    if(!d||!Array.isArray(d.players)||!Array.isArray(d.matches))throw 0;
+    d.settings={...DEFAULTS,...(d.settings||{})};
+    if(!Array.isArray(d.ratings))d.ratings=[];
+    if(!d.seasons||!d.seasons.length){const sid=uid();d.seasons=[{id:sid,name:'Season 1',started:Date.now()}];d.season=sid;}
+    S=d;meet=null;cup=null;$('#meetPicks')._sel=null;$('#cupPicks')._sel=null;
+    restoreSession();save();$('#importArea').hidden=true;renderAll();
+    toast(`Loaded ${S.players.length} players and ${S.matches.length} matches.`);
+  }catch(err){toast('That does not look like a deskball league file.');}
+});
+$('#resetBtn').addEventListener('click',()=>{
+  if(!confirm('Erase every player, match, card and season from this browser? Export first if you want a copy.'))return;
+  S=blank();meet=null;cup=null;$('#meetPicks')._sel=null;$('#cupPicks')._sel=null;
+  signOut();save();go('setup');toast('League erased.');
+});
+
+/* ---------------------------------------------------------------- boot */
+try{document.documentElement.setAttribute('data-theme',localStorage.getItem('deskball.theme')||'light');}
+catch(e){document.documentElement.setAttribute('data-theme','light');}
+S=load();
+restoreSession();
+$('#meetTarget').value=S.settings.target;
+[$('#matchSlot'),$('#meetSlot')].forEach(sel=>{
+  if(sel)sel.innerHTML=SLOTS.map(([k,n])=>`<option value="${k}">${n}</option>`).join('');
+});
+try{const r=localStorage.getItem('deskball.rater');if(r)$('#rateBy').value=r;}catch(e){}
+fillRefSelects();
+refreshStats();
+go('home',false);
+try{ if(localStorage.getItem('deskball.tour')!=='done')openIntro(); }
+catch(e){ openIntro(); }
+cloudBoot();
+
+})();
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>

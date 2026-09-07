@@ -1,0 +1,15 @@
+# Vercel
+.vercel/
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+
+# Never commit a Supabase service_role key or any .env
+.env
+.env.*
