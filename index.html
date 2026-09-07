@@ -997,7 +997,7 @@ function demoLeague(){
    the app runs exactly as before, saving to local storage.
    The anon key is meant to be public; what protects the data is the
    row-level security in schema.sql, enforced by the server, not here. */
-const CLOUD={ url:'', anon:'' };
+const CLOUD={ url:'https://zudlspbvxkmghgujmram.supabase.co', anon:'sb_publishable_KZEnW96nUq9CGil-AyWgqg_4tBzXyWK' };
 
 let sb=null, cloudUser=null, cloudAdmin=false, cloudRequests=[], pushTimer=null, lastPush=0, cloudErr='';
 const cloudOn =()=>!!(CLOUD.url&&CLOUD.anon&&sb);
