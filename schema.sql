@@ -110,11 +110,11 @@ create policy "match read" on public.matches for select to authenticated using (
 -- any signed-in player may record a result, stamped with who entered it
 create policy "match insert" on public.matches for insert to authenticated
   with check (created_by = auth.uid());
--- only the admin may correct or remove one
+-- any signed-in player may correct or remove a result
 create policy "match update" on public.matches for update to authenticated
-  using (public.is_admin()) with check (public.is_admin());
+  using (true) with check (true);
 create policy "match delete" on public.matches for delete to authenticated
-  using (public.is_admin());
+  using (true);
 
 do $$
 begin

@@ -1684,9 +1684,10 @@ function currentPick(){
 
 /* ================================================================== MEET */
 function activePlayers(){return S.players.filter(p=>p.active!==false);}
-// A referee has to be a registered player: an approved account with a roster entry.
+// Anyone on the roster can referee — an account is not required.
 function refPlayers(){
-  return S.accounts.filter(a=>a.status==='active'&&a.playerId&&byId(a.playerId));
+  return activePlayers().slice().sort((a,b)=>a.name.localeCompare(b.name))
+    .map(p=>({playerId:p.id,name:p.name}));
 }
 function fillRefSelects(){
   const regs=refPlayers();
@@ -1695,16 +1696,15 @@ function fillRefSelects(){
     const cur=sel.value;
     const free=regs.filter(a=>!busy.includes(a.playerId));
     sel.innerHTML = free.length
-      ? '<option value="">&mdash; pick the referee &mdash;</option>'+
+      ? '<option value="">&mdash; no referee &mdash;</option>'+
         free.map(a=>`<option value="${a.playerId}"${a.playerId===cur?' selected':''}>${esc(a.name)}</option>`).join('')
-      : `<option value="">${regs.length?'everyone registered is playing':'nobody has registered yet'}</option>`;
+      : `<option value="">${regs.length?'everyone on the roster is playing':'add a player to the roster first'}</option>`;
   };
   // a referee cannot be one of the four on court
   const v=$('#matchRef')?currentPick():{};
   fill($('#matchRef'),[v.a0,v.a1,v.b0,v.b1].filter(Boolean));
   fill($('#meetRef'),[]);
 }
-const refNeeded=sel=>sel&&[...sel.options].some(o=>o.value);
 
 function selectedFrom(host){return Array.from(host._sel||[]).filter(id=>byId(id));}
 
@@ -1851,7 +1851,6 @@ function buildMeet(){
   const rounds=clamp(+$('#meetRounds').value||1,1,24);
   const target=clamp(+$('#meetTarget').value||21,1,999);
   if(ids.length<4){toast('You need at least four players for a meet.');return;}
-  if(refNeeded($('#meetRef'))&&!$('#meetRef').value){toast('Pick the referee — it has to be a registered player.');return;}
   let rs=null;
   if(fmt==='americano'||fmt==='random'){
     rs=buildRotation(ids,desks,rounds,fmt==='americano');
@@ -2354,7 +2353,7 @@ function renderRecord(){
   const lock=$('#recordLock');
   if(lock)lock.innerHTML=canEdit()?'':
     `<div class="card tight" style="margin-bottom:12px">
-       <p class="note">Anyone can record a result and it counts straight away. Only the admin can correct or delete one afterwards.</p></div>`;
+       <p class="note">Anyone can record a result, and anyone can delete one to correct it. It counts straight away.</p></div>`;
   recordSlots().forEach(s=>playerOptions(s,s.value));
   if(!$('#matchDate').value)$('#matchDate').value=new Date().toISOString().slice(0,10);
   $('#scoreA').placeholder=S.settings.target;$('#scoreB').placeholder=S.settings.target;
@@ -2413,7 +2412,7 @@ function renderLog(){
       <span class="rm"><span class="rn" style="font-size:13.5px">${esc(pairName(aw?m.a:m.b))}</span>
         <span class="rs">beat ${esc(pairName(aw?m.b:m.a))} &middot; ${fmtDate(m.ts)}${m.slot?' &middot; '+slotName(m.slot):''}${m.ref?' &middot; ref '+esc(shortName(m.ref)):''}${m.rated===false?' &middot; unrated':''}</span></span>
       <span class="rv"><span class="rnum">${Math.max(m.sa,m.sb)}&ndash;${Math.min(m.sa,m.sb)}</span></span>
-      ${canEdit()?`<button class="btn warn xs" data-del="${m.id}">Delete</button>`:''}</div>`;}).join('')
+      <button class="btn warn xs" data-del="${m.id}">Delete</button></div>`;}).join('')
     : '<div class="card"><div class="empty">No matches recorded yet.</div></div>';
   $('#logNote').textContent = S.matches.length>25?`showing 25 of ${S.matches.length}`:`${S.matches.length} recorded`;
 }
@@ -2956,7 +2955,7 @@ function renderIntro(){
 const canEdit=()=>!cloudWanted()||isAdmin();
 const ADMIN_ONLY=[
   '#addPlayer','#resetBtn','#importGo','#importBtn','#newSeason',
-  '[data-del]','[data-drop]','[data-toggle]','[data-rename]','[data-delcard]',
+  '[data-drop]','[data-toggle]','[data-rename]','[data-delcard]',
   '#setK','#setCarry','#setMov','#setTies','#setBase','#setProv','#setTarget','#setSkillMax',
   '#setSeed','#setSeedMult','#setSwing','#ptsWin','#ptsLoss','#ptsBonus','#regress','#seasonPick'
 ].join(',');
@@ -3220,7 +3219,6 @@ $('#saveMatch').addEventListener('click',()=>{
   if(sa===''||sb===''||isNaN(+sa)||isNaN(+sb)){toast('Enter both scores.');return;}
   if(+sa===+sb&&!S.settings.ties){toast('Drawn matches are switched off in Setup.');return;}
   const dv=$('#matchDate').value;
-  if(refNeeded($('#matchRef'))&&!$('#matchRef').value){toast('Pick the referee — it has to be a registered player who is not on court.');return;}
   const rec={id:uid(),ts:dv?new Date(dv+'T12:00:00').getTime():Date.now(),season:S.season,tag:'match',
     slot:$('#matchSlot').value, rated:$('#matchRated').checked, ref:$('#matchRef').value||null,
     a:[v.a0,v.a1],b:[v.b0,v.b1],sa:+sa,sb:+sb};
