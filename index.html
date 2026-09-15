@@ -1490,7 +1490,7 @@ function computeStats(matches,initial){
     R[p.id]=start;
     stats[p.id]={id:p.id,name:p.name,active:p.active,rating:start,peak:start,low:start,
       games:0,w:0,l:0,d:0,pf:0,pa:0,streak:0,form:[],hist:[{t:null,r:start}],last:0,
-      partners:{},opps:{},pts:0,seasonGames:0,seasonW:0,seasonL:0};
+      partners:{},opps:{},pts:0,seasonGames:0,seasonW:0,seasonL:0,seasonStart:start};
   });
   const ms=matches.slice().sort((x,y)=>x.ts-y.ts);
   for(const m of ms){
@@ -1548,6 +1548,7 @@ function computeStats(matches,initial){
         pr.g++; if(outcome===1)pr.w++; pr.d+=(R[id]-before);
         foes.forEach(f=>{const o=s.opps[f]||(s.opps[f]={g:0,w:0});o.g++;if(outcome===1)o.w++;});
         if(m.season===S.season){
+          if(!s.seasonGames)s.seasonStart=before;   // rating going into their first match this season
           s.seasonGames++;
           if(outcome===1){s.seasonW++;s.pts+=st.ptsWin;}
           else if(outcome===0){s.seasonL++;s.pts+=st.ptsLoss+(Math.abs(m.sa-m.sb)<=2?st.ptsBonus:0);}
@@ -2180,7 +2181,7 @@ function ladderRow(s,rank){
     ${avatar(s.id)}
     <span class="rm"><span class="rn">${esc(s.name)}${prov?' <span class="tag">prov</span>':''}</span>
       <span class="rs">${s.games} played &middot; ${s.w}W ${s.l}L${s.games?' &middot; '+Math.round(s.w/s.games*100)+'%':''}</span></span>
-    <span class="rv"><span class="rnum">${Math.round(s.rating)}</span>${s.games?dchip(s.last):''}</span>
+    <span class="rv"><span class="rnum">${Math.round(s.rating)}</span>${s.seasonGames?dchip(s.rating-s.seasonStart):''}</span>
   </button>`;
 }
 
