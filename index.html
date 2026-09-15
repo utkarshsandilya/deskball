@@ -566,7 +566,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
         <button class="btn sec sm" id="clearMatch">Clear</button>
       </div>
 
-      <div class="sh"><h2>Match log</h2><span class="note" id="logNote"></span></div>
+      <div class="sh"><h2>Match log</h2><span class="note"><span id="logNote"></span> &middot; <button class="lk" data-go="history">Full history</button></span></div>
       <div class="rows" id="logTbl"></div>
       <div style="height:20px"></div>
     </div>
@@ -842,6 +842,34 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;bac
       </div>
       <div class="rows" id="moreMenu"></div>
       <div class="foot">Deskball Federation</div>
+    </div>
+  </section>
+
+  <!-- ===================== MATCH HISTORY ===================== -->
+  <section class="view" id="v-history" hidden>
+    <div class="top">
+      <button class="ib" data-back="1" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="tt">Match history</div>
+      <div style="width:42px"></div>
+    </div>
+    <div class="pad">
+      <div class="segs" id="histScope">
+        <button data-scope="all" aria-pressed="true">All seasons</button>
+        <button data-scope="season" aria-pressed="false">This season</button>
+      </div>
+      <div class="search" style="margin-top:12px">
+        <div class="sbox">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+          <input type="text" id="histSearch" placeholder="Search players, e.g. sean utkarsh">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end;margin-top:12px">
+        <div style="flex:1"><label class="f" for="histDate">On date</label><input type="date" id="histDate"></div>
+        <button class="btn sec sm" id="histClear">Clear</button>
+      </div>
+      <div class="note" id="histNote" style="margin:12px 0 0"></div>
+      <div id="histList"></div>
+      <div style="height:20px"></div>
     </div>
   </section>
 
@@ -2418,6 +2446,40 @@ function renderLog(){
   $('#logNote').textContent = S.matches.length>25?`showing 25 of ${S.matches.length}`:`${S.matches.length} recorded`;
 }
 
+/* ------------------------------------------------------- MATCH HISTORY */
+let histScope='all';
+const dayKey=ts=>{const d=new Date(ts);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+function renderHistory(){
+  const terms=($('#histSearch').value||'').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const day=$('#histDate').value;
+  const pool=histScope==='season'?S.matches.filter(m=>m.season===S.season):S.matches;
+  // every word must match one of the four players, so "sean utkarsh" finds games with both
+  const ms=pool.filter(m=>{
+    if(day&&dayKey(m.ts)!==day)return false;
+    const names=[...m.a,...m.b].map(id=>nameOf(id).toLowerCase());
+    return terms.every(t=>names.some(n=>n.includes(t)));
+  }).sort((a,b)=>b.ts-a.ts);
+
+  const groups=[];
+  ms.forEach(m=>{const k=dayKey(m.ts);const g=groups[groups.length-1];
+    if(g&&g.k===k)g.list.push(m);else groups.push({k,ts:m.ts,list:[m]});});
+
+  $('#histList').innerHTML = groups.length ? groups.map(g=>`
+    <div class="sh"><h2>${new Date(g.ts).toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</h2>
+      <span class="note">${g.list.length} match${g.list.length===1?'':'es'}</span></div>
+    <div class="rows">${g.list.map(m=>{
+      const aw=m.sa>=m.sb, draw=m.sa===m.sb;
+      const tag=m.rated===false?'unrated':m.tag==='cup'?'cup tie':m.tag==='meet'?'meet':'';
+      return `<div class="r static">
+        <span class="rm"><span class="rn" style="font-size:13.5px">${esc(pairName(aw?m.a:m.b))}</span>
+          <span class="rs">${draw?'drew with':'beat'} ${esc(pairName(aw?m.b:m.a))} &middot; ${new Date(m.ts).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}${m.slot?' &middot; '+slotName(m.slot):''}${m.ref?' &middot; ref '+esc(shortName(m.ref)):''}${tag?' &middot; '+tag:''}</span></span>
+        <span class="rv"><span class="rnum">${Math.max(m.sa,m.sb)}&ndash;${Math.min(m.sa,m.sb)}</span></span></div>`;}).join('')}</div>`).join('')
+    : `<div class="card" style="margin-top:12px"><div class="empty">${pool.length?'No matches fit that search.':'No matches recorded yet.'}</div></div>`;
+  $('#histNote').textContent = (terms.length||day)
+    ? `${ms.length} of ${pool.length} matches`
+    : `${pool.length} match${pool.length===1?'':'es'} across ${groups.length} day${groups.length===1?'':'s'}`;
+}
+
 /* -------------------------------------------------------------- SKILLS */
 function radar(avg,label){
   const W=360,H=274,cx=180,cy=136,R=84;
@@ -2784,6 +2846,7 @@ function renderMore(){
     ...(isAdmin()?[['approve','Requests','inbox', n?`${n} waiting for you`:'nothing waiting']]:[]),
     ['skills','Skill profiles','star',`${S.ratings.length} card${S.ratings.length===1?'':'s'} filed`],
     ['cup','Cup draw','cup','knockout & round robin brackets'],
+    ['history','Match history','cal',`${S.matches.length} match${S.matches.length===1?'':'es'} · search by player or date`],
     ['league','League table','table',`${S.matches.filter(m=>m.season===S.season).length} matches this season`],
     ['meet','Meet builder','cal','rotations, desks and sit-outs'],
     ['setup','Setup','gear','roster, rating rules and data']
@@ -2814,6 +2877,7 @@ function renderAll(){
   if(activeTab==='meet'){renderPicks($('#meetPicks'),$('#meetCount'));fillRefSelects();renderMeet();updateMeetHint();}
   if(activeTab==='cup'){renderPicks($('#cupPicks'),$('#cupCount'));renderCup();}
   if(activeTab==='league')renderLeague();
+  if(activeTab==='history')renderHistory();
   if(activeTab==='setup')renderSetup();
   if(activeTab==='more')renderMore();
   if(activeTab==='account')renderAccount();
@@ -3197,6 +3261,13 @@ $('#ladderScope').addEventListener('click',e=>{const b=e.target.closest('button'
   ladderScope=b.dataset.scope;$$('#ladderScope button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderLadder();});
 $('#ladderSearch').addEventListener('input',renderLadder);
 $('#minGames').addEventListener('input',renderLadder);
+
+/* match history */
+$('#histScope').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  histScope=b.dataset.scope;$$('#histScope button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderHistory();});
+$('#histSearch').addEventListener('input',renderHistory);
+$('#histDate').addEventListener('input',renderHistory);
+$('#histClear').addEventListener('click',()=>{$('#histSearch').value='';$('#histDate').value='';renderHistory();});
 
 /* record */
 $('#v-record').addEventListener('change',e=>{if(e.target.matches('select[data-slot]')){fillRefSelects();renderPredict();}});
